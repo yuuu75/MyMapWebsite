@@ -62,6 +62,9 @@ const mentalHealthCluster = L.markerClusterGroup({
   disableClusteringAtZoom: 15
 });
 
+// 建立面圖層群組
+const urbanicityLayerGroup = L.layerGroup();
+
 // 建立圖層控制器
 const baseMaps = {
   "預設底圖": cartoVoyager,
@@ -70,9 +73,23 @@ const baseMaps = {
   "衛星影像底圖": esriImagery
 };
 
+// 城鄉階層顏色函式
+function getUrbanicityColor(rank) {
+  const value = Number(rank);
+
+  if (value >= 1 && value <= 70) return "#d7191c";
+  if (value >= 71 && value <= 140) return "#fdae61";
+  if (value >= 141 && value <= 210) return "#ffffbf";
+  if (value >= 211 && value <= 280) return "#abdda4";
+  if (value >= 281 && value <= 349) return "#2b83ba";
+
+  return "#cccccc";
+}
+
 const overlayMaps = {
   "YouBike2.0站點": youbikeCluster,
-  "社區心理衛生中心":mentalHealthCluster
+  "社區心理衛生中心":mentalHealthCluster,
+  "城鄉階層": urbanicityLayerGroup
 };
 
 L.control.layers(baseMaps, overlayMaps, {
@@ -124,6 +141,7 @@ fetch("data/Youbike2.0.geojson")
     youbikeCluster.addLayer(youbikeLayer);
      // 預設顯示 YouBike 圖層
     map.addLayer(youbikeCluster);
+
 // 縮放到所有 YouBike 站點範圍
     map.fitBounds(youbikeLayer.getBounds());
   })
@@ -195,3 +213,134 @@ fetch("data/mental_health_center.geojson")
   .catch(error => {
     console.error("社區心理衛生中心圖層載入失敗：", error);
   });
+
+  // 載入城鄉階層 GeoJSON
+let urbanicityLayer;
+  fetch("data/urbanicity level.geojson")
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error：${response.status}`);
+    }
+
+    return response.json();
+  })
+  .then(data => {
+    console.log(data);
+    urbanicityLayer = L.geoJSON(data, {
+      style: feature => ({
+        color: "#666666",
+        weight: 0.8,
+        opacity: 1,
+        fillColor: getUrbanicityColor(feature.properties.Rank),
+        fillOpacity: 0.50
+      }),
+
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties || {};
+
+        layer.bindPopup(`
+          <strong>${p.COUNTY || ""}${p.TOWN || ""}</strong><br>
+          Rank：${p.Rank ?? "無資料"}<br>
+          人口數：${p.P_CNT ?? "無資料"}
+        `);
+
+        layer.on({
+          mouseover: event => {
+            event.target.setStyle({
+              color: "#222222",
+              weight: 2.5,
+              fillOpacity: 0.9
+            });
+          },
+
+          mouseout: event => {
+            urbanicityLayer.resetStyle(event.target);
+          }
+        });
+      }
+    });
+
+    urbanicityLayerGroup.addLayer(urbanicityLayer);
+    map.addLayer(urbanicityLayerGroup);
+    urbanicityLayer.bringToBack();
+  })
+  .catch(error => {
+    console.error("城鄉階層圖層載入失敗：", error);
+  });
+
+// 城鄉階層圖例
+const legend = L.control({
+    position: "bottomleft"
+});
+
+legend.onAdd = function () {
+
+    const div = L.DomUtil.create("div", "legend");
+
+    div.innerHTML = `
+        <h4>城鄉階層</h4>
+
+        <div><i style="background:#d7191c"></i>1–70</div>
+        <div><i style="background:#fdae61"></i>71–140</div>
+        <div><i style="background:#ffffbf"></i>141–210</div>
+        <div><i style="background:#abdda4"></i>211–280</div>
+        <div><i style="background:#2b83ba"></i>281–349</div>
+    `;
+
+    return div;
+};
+
+legend.addTo(map);
+
+// 城鄉階層透明度控制器
+const opacityControl = L.control({
+  position: "bottomright"
+});
+
+opacityControl.onAdd = function () {
+  const container = L.DomUtil.create(
+    "div",
+    "urbanicity-opacity-control"
+  );
+
+  container.innerHTML = `
+    <div class="opacity-title">城鄉階層透明度</div>
+
+    <input
+      id="urbanicity-opacity"
+      type="range"
+      min="0"
+      max="1"
+      step="0.05"
+      value="0.50"
+    >
+
+    <span id="urbanicity-opacity-value">50%</span>
+  `;
+
+  // 避免拖動滑桿時連地圖一起移動
+  L.DomEvent.disableClickPropagation(container);
+  L.DomEvent.disableScrollPropagation(container);
+
+  return container;
+};
+
+opacityControl.addTo(map);
+const opacitySlider =
+  document.getElementById("urbanicity-opacity");
+
+const opacityValue =
+  document.getElementById("urbanicity-opacity-value");
+
+opacitySlider.addEventListener("input", function () {
+  const opacity = Number(this.value);
+
+  opacityValue.textContent =
+    `${Math.round(opacity * 100)}%`;
+
+  if (urbanicityLayer) {
+    urbanicityLayer.setStyle({
+      fillOpacity: opacity
+    });
+  }
+});

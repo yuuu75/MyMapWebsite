@@ -25,3 +25,52 @@ header h1 {
   flex: 1;
   width: 100%;
 }
+.urbanicity-opacity-control {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+  font-family: Arial, "Microsoft JhengHei", sans-serif;
+  font-size: 13px;
+}
+
+.opacity-title {
+  font-weight: bold;
+  margin-bottom: 7px;
+}
+
+#urbanicity-opacity {
+  width: 130px;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+#urbanicity-opacity-value {
+  display: inline-block;
+  width: 38px;
+  margin-left: 5px;
+  text-align: right;
+}
+.legend{
+    background:white;
+    padding:10px 12px;
+    border-radius:8px;
+    box-shadow:0 1px 5px rgba(0,0,0,.35);
+
+    line-height:20px;
+    font-size:13px;
+    font-family:Arial,"Microsoft JhengHei",sans-serif;
+}
+
+.legend h4{
+    margin:0 0 8px;
+    font-size:14px;
+}
+
+.legend i{
+    width:18px;
+    height:18px;
+    float:left;
+    margin-right:8px;
+    border:1px solid #666;
+}
