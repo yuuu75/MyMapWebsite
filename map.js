@@ -145,6 +145,11 @@ fetch("data/mental_health_center.geojson")
       pointToLayer: function (feature, latlng) {
         return L.circleMarker(latlng, {
           radius: 6,
+           // 外框顏色
+    color: "rgb(0, 0, 0)",
+
+    // 點的填滿顏色
+    fillColor: "#a03641",
           weight: 2,
           fillOpacity: 0.85
         });
