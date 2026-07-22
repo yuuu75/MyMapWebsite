@@ -238,30 +238,48 @@ let urbanicityLayer;
       onEachFeature: (feature, layer) => {
         const p = feature.properties || {};
 
-        layer.bindPopup(`
-          <strong>${p.COUNTY || ""}${p.TOWN || ""}</strong><br>
-          Rank：${p.Rank ?? "無資料"}<br>
-          人口數：${p.P_CNT ?? "無資料"}
-        `);
-
-        layer.on({
-          mouseover: event => {
-            event.target.setStyle({
-              color: "#222222",
-              weight: 2.5,
-              fillOpacity: 0.9
-            });
-          },
-
-          mouseout: event => {
-            urbanicityLayer.resetStyle(event.target);
-          }
-        });
-      }
+        layer.bindTooltip(`
+      <div class="urbanicity-tooltip">
+        <strong>${p.COUNTY || ""}${p.TOWN || ""}</strong><br>
+        城鄉階層排名：${p.Rank ?? "無資料"}<br>
+        人口數：${p.P_CNT ?? "無資料"}
+      </div>
+    `, {
+      sticky: true,
+      direction: "top",
+      opacity: 0.95
     });
+
+    layer.on("mouseover", function (event) {
+      event.target.setStyle({
+        color: "#222222",
+        weight: 2.5
+      });
+
+      event.target.bringToFront();
+    });
+
+    layer.on("mouseout", function (event) {
+      urbanicityLayer.resetStyle(event.target);
+
+      const opacitySlider =
+        document.getElementById("urbanicity-opacity");
+
+      event.target.setStyle({
+        fillOpacity: opacitySlider
+          ? Number(opacitySlider.value)
+          : 0.5
+      });
+    });
+  }
+});
 
     urbanicityLayerGroup.addLayer(urbanicityLayer);
     map.addLayer(urbanicityLayerGroup);
+    
+      // 預設開啟城鄉階層圖層
+    map.addLayer(urbanicityLayerGroup);
+
     urbanicityLayer.bringToBack();
   })
   .catch(error => {
