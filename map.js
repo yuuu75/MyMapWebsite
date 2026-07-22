@@ -4,6 +4,14 @@ const map = L.map("map").setView(
   12
 );
 
+// 城鄉階層固定在較下層
+map.createPane("urbanicityPane");
+map.getPane("urbanicityPane").style.zIndex = 400;
+
+// 心理衛生中心固定在較上層
+map.createPane("mentalHealthPane");
+map.getPane("mentalHealthPane").style.zIndex = 650;
+
 // 加入 OpenStreetMap 底圖
 const osmLayer = L.tileLayer(
   "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -51,15 +59,14 @@ L.control.scale({
   imperial: false
 }).addTo(map);
 
-// 建立 YouBike 點群聚圖層
-const youbikeCluster = L.markerClusterGroup({
-  chunkedLoading: true,
-  disableClusteringAtZoom: 17
-});
+
 // 建立社區心理衛生中心點群聚圖層
 const mentalHealthCluster = L.markerClusterGroup({
   chunkedLoading: true,
-  disableClusteringAtZoom: 15
+  disableClusteringAtZoom: 15,
+
+  // 群聚圖示固定放在心理衛生中心 Pane
+  clusterPane: "mentalHealthPane"
 });
 
 // 建立面圖層群組
@@ -87,7 +94,6 @@ function getUrbanicityColor(rank) {
 }
 
 const overlayMaps = {
-  "YouBike2.0站點": youbikeCluster,
   "社區心理衛生中心":mentalHealthCluster,
   "城鄉階層": urbanicityLayerGroup
 };
@@ -96,60 +102,16 @@ L.control.layers(baseMaps, overlayMaps, {
   collapsed: false
 }).addTo(map);
 
-// 讀取 YouBike GeoJSON
-fetch("data/Youbike2.0.geojson")
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`讀取失敗：${response.status}`);
-    }
+// 城鄉階層相關變數
+let urbanicityLayer = null;
+let selectedUrbanicityLayer = null;
+let currentUrbanicityOpacity = 0.5;
 
-    return response.json();
-  })
-  .then(data => {
-    const youbikeLayer = L.geoJSON(data, {
-      pointToLayer: function (feature, latlng) {
-        return L.circleMarker(latlng, {
-          radius: 5,
-          weight: 1,
-          fillOpacity: 0.8
-        });
-      },
 
-      onEachFeature: function (feature, layer) {
-        const p = feature.properties || {};
-
-        const stationName =
-          p.sna ||
-          p.name ||
-          p.站點名稱 ||
-          "YouBike站點";
-
-        const address =
-          p.ar ||
-          p.address ||
-          p.地址 ||
-          "無地址資料";
-
-        layer.bindPopup(`
-          <strong>${stationName}</strong><br>
-          地址：${address}
-        `);
-      }
-    });
-
-     // 把所有 YouBike 點加入 cluster
-    youbikeCluster.addLayer(youbikeLayer);
-     // 預設顯示 YouBike 圖層
-    map.addLayer(youbikeCluster);
-
-// 縮放到所有 YouBike 站點範圍
-    map.fitBounds(youbikeLayer.getBounds());
-  })
-  .catch(error => {
-    console.error("YouBike 圖層載入失敗：", error);
-  });
-
+// ==============================
 // 讀取社區心理衛生中心 GeoJSON
+// ==============================
+
 fetch("data/mental_health_center.geojson")
   .then(response => {
     if (!response.ok) {
@@ -162,12 +124,11 @@ fetch("data/mental_health_center.geojson")
     const mentalHealthLayer = L.geoJSON(data, {
       pointToLayer: function (feature, latlng) {
         return L.circleMarker(latlng, {
+          // 未群聚的個別點位也固定在上層
+          pane: "mentalHealthPane",
           radius: 6,
-           // 外框顏色
-    color: "rgb(0, 0, 0)",
-
-    // 點的填滿顏色
-    fillColor: "#a03641",
+          color: "rgb(0, 0, 0)",
+          fillColor: "#a03641",
           weight: 2,
           fillOpacity: 0.85
         });
@@ -176,114 +137,302 @@ fetch("data/mental_health_center.geojson")
       onEachFeature: function (feature, layer) {
         const p = feature.properties || {};
 
-         const centerName =
-    p["Column1.title"] || "未提供機構名稱";
+        const centerName =
+          p["Column1.title"] ||
+          "未提供機構名稱";
 
-  const address =
-    p["Column1.address"] || "未提供地址";
+        const address =
+          p["Column1.address"] ||
+          "未提供地址";
 
-  const phone =
-    p["Column1.tel"] || "未提供電話";
+        const phone =
+          p["Column1.tel"] ||
+          "未提供電話";
 
-  const serviceTime =
-    p["Column1.time_info"] || "未提供服務時間";
+        const serviceTime =
+          p["Column1.time_info"] ||
+          "未提供服務時間";
 
-  const organizationType =
-    p["Column1.tag_type"] || "未提供機構類型";
+        const organizationType =
+          p["Column1.tag_type"] ||
+          "未提供機構類型";
 
-  layer.bindPopup(`
-    <div class="mental-health-popup">
-      <strong>${centerName}</strong><br><br>
+        layer.bindPopup(`
+          <div class="mental-health-popup">
+            <strong>${centerName}</strong><br><br>
 
-      <b>機構類型：</b>${organizationType}<br>
-      <b>地址：</b>${address}<br>
-      <b>電話：</b>${phone}<br>
-      <b>服務時間：</b>${serviceTime}<br>
-    </div>
-  `);
-}
+            <b>機構類型：</b>${organizationType}<br>
+            <b>地址：</b>${address}<br>
+            <b>電話：</b>${phone}<br>
+            <b>服務時間：</b>${serviceTime}<br>
+          </div>
+        `);
+      }
     });
 
-    // 把心理衛生中心點位加入其 Cluster
-    mentalHealthCluster.addLayer(mentalHealthLayer);
+    mentalHealthCluster.addLayer(
+      mentalHealthLayer
+    );
 
-    // 預設顯示心理衛生中心
+    // 預設顯示
     map.addLayer(mentalHealthCluster);
   })
   .catch(error => {
-    console.error("社區心理衛生中心圖層載入失敗：", error);
+    console.error(
+      "社區心理衛生中心圖層載入失敗：",
+      error
+    );
   });
 
-  // 載入城鄉階層 GeoJSON
-let urbanicityLayer;
-  fetch("data/urbanicity level.geojson")
+
+// ==============================
+// 載入城鄉階層 GeoJSON
+// ==============================
+
+fetch("data/urbanicity level.geojson")
   .then(response => {
     if (!response.ok) {
-      throw new Error(`HTTP error：${response.status}`);
+      throw new Error(
+        `HTTP error：${response.status}`
+      );
     }
 
     return response.json();
   })
   .then(data => {
-    console.log(data);
+    console.log("城鄉階層資料：", data);
+
     urbanicityLayer = L.geoJSON(data, {
-      style: feature => ({
-        color: "#666666",
-        weight: 0.8,
-        opacity: 1,
-        fillColor: getUrbanicityColor(feature.properties.Rank),
-        fillOpacity: 0.50
-      }),
+      // 城鄉階層固定在較低的 Pane
+      pane: "urbanicityPane",
 
-      onEachFeature: (feature, layer) => {
-        const p = feature.properties || {};
+      style: function (feature) {
+        return {
+          pane: "urbanicityPane",
+          color: "#666666",
+          weight: 0.8,
+          opacity: 1,
+          fillColor: getUrbanicityColor(
+            feature.properties.Rank
+          ),
+          fillOpacity:
+            currentUrbanicityOpacity
+        };
+      },
 
-        layer.bindTooltip(`
-      <div class="urbanicity-tooltip">
-        <strong>${p.COUNTY || ""}${p.TOWN || ""}</strong><br>
-        城鄉階層排名：${p.Rank ?? "無資料"}<br>
-        人口數：${p.P_CNT ?? "無資料"}
-      </div>
-    `, {
-      sticky: true,
-      direction: "top",
-      opacity: 0.95
+      onEachFeature: function (
+        feature,
+        layer
+      ) {
+        const p =
+          feature.properties || {};
+
+        const infoContent = `
+          <div class="urbanicity-info">
+            <strong>
+              ${p.COUNTY || ""}
+              ${p.TOWN || ""}
+            </strong><br>
+
+            城鄉階層排名：
+            ${p.Rank ?? "無資料"}<br>
+
+            人口數：
+            ${p.P_CNT ?? "無資料"}
+          </div>
+        `;
+
+        // 滑鼠經過時顯示
+        layer.bindTooltip(
+          infoContent,
+          {
+            sticky: true,
+            direction: "top",
+            opacity: 0.95
+          }
+        );
+
+        // 點擊後固定顯示
+        layer.bindPopup(
+          infoContent,
+          {
+            closeButton: true,
+            autoClose: true,
+            closeOnClick: false
+          }
+        );
+
+
+        // 有其他區域被固定時，
+        // 阻止目前區域顯示 tooltip
+        layer.on(
+          "tooltipopen",
+          function () {
+            if (
+              selectedUrbanicityLayer &&
+              selectedUrbanicityLayer !==
+                layer
+            ) {
+              layer.closeTooltip();
+            }
+          }
+        );
+
+
+        // 滑鼠移入
+        layer.on(
+          "mouseover",
+          function (event) {
+            if (
+              selectedUrbanicityLayer &&
+              selectedUrbanicityLayer !==
+                layer
+            ) {
+              layer.closeTooltip();
+              return;
+            }
+
+            event.target.setStyle({
+              color: "#222222",
+              weight: 2.5,
+              fillOpacity: Math.min(
+                currentUrbanicityOpacity +
+                  0.15,
+                1
+              )
+            });
+
+            event.target.bringToFront();
+          }
+        );
+
+
+        // 滑鼠移出
+        layer.on(
+          "mouseout",
+          function (event) {
+            // 已被點選的區域維持突出
+            if (
+              selectedUrbanicityLayer ===
+              layer
+            ) {
+              return;
+            }
+
+            urbanicityLayer.resetStyle(
+              event.target
+            );
+
+            event.target.setStyle({
+              fillOpacity:
+                currentUrbanicityOpacity
+            });
+
+            urbanicityLayer.bringToBack();
+          }
+        );
+
+
+        // 點擊行政區
+        layer.on(
+          "click",
+          function () {
+            // 關閉所有滑鼠提示
+            urbanicityLayer.eachLayer(
+              function (otherLayer) {
+                otherLayer.closeTooltip();
+              }
+            );
+
+            // 恢復前一個被選取區域
+            if (
+              selectedUrbanicityLayer &&
+              selectedUrbanicityLayer !==
+                layer
+            ) {
+              urbanicityLayer.resetStyle(
+                selectedUrbanicityLayer
+              );
+
+              selectedUrbanicityLayer
+                .setStyle({
+                  fillOpacity:
+                    currentUrbanicityOpacity
+                });
+            }
+
+            // 記錄目前選取區域
+            selectedUrbanicityLayer =
+              layer;
+
+            // 突出目前區域
+            layer.setStyle({
+              color: "#111111",
+              weight: 3,
+              fillOpacity: Math.min(
+                currentUrbanicityOpacity +
+                  0.2,
+                1
+              )
+            });
+
+            layer.bringToFront();
+          }
+        );
+
+
+        // 關閉 Popup 時解除選取
+        layer.on(
+          "popupclose",
+          function () {
+            if (
+              selectedUrbanicityLayer !==
+              layer
+            ) {
+              return;
+            }
+
+            urbanicityLayer.resetStyle(
+              layer
+            );
+
+            layer.setStyle({
+              fillOpacity:
+                currentUrbanicityOpacity
+            });
+
+            selectedUrbanicityLayer =
+              null;
+
+            urbanicityLayer.bringToBack();
+          }
+        );
+      }
     });
 
-    layer.on("mouseover", function (event) {
-      event.target.setStyle({
-        color: "#222222",
-        weight: 2.5
-      });
+    // 加入圖層群組
+    urbanicityLayerGroup.addLayer(
+      urbanicityLayer
+    );
 
-      event.target.bringToFront();
-    });
+    // 預設開啟城鄉階層
+    map.addLayer(
+      urbanicityLayerGroup
+    );
 
-    layer.on("mouseout", function (event) {
-      urbanicityLayer.resetStyle(event.target);
+    // 預設顯示圖例及透明度控制
+    showUrbanicityControls();
 
-      const opacitySlider =
-        document.getElementById("urbanicity-opacity");
-
-      event.target.setStyle({
-        fillOpacity: opacitySlider
-          ? Number(opacitySlider.value)
-          : 0.5
-      });
-    });
-  }
-});
-
-    urbanicityLayerGroup.addLayer(urbanicityLayer);
-    map.addLayer(urbanicityLayerGroup);
-    
-      // 預設開啟城鄉階層圖層
-    map.addLayer(urbanicityLayerGroup);
-
-    urbanicityLayer.bringToBack();
+    // 放到點圖層下方
+    setTimeout(function () {
+      urbanicityLayer.bringToBack();
+    }, 0);
   })
   .catch(error => {
-    console.error("城鄉階層圖層載入失敗：", error);
+    console.error(
+      "城鄉階層圖層載入失敗：",
+      error
+    );
   });
 
 // 城鄉階層圖例
@@ -292,16 +441,38 @@ const legend = L.control({
 });
 
 legend.onAdd = function () {
-  const div = L.DomUtil.create("div", "legend");
+  const div = L.DomUtil.create(
+    "div",
+    "legend"
+  );
 
   div.innerHTML = `
     <h4>城鄉階層</h4>
 
-    <div><i style="background:#d7191c"></i>1–70</div>
-    <div><i style="background:#fdae61"></i>71–140</div>
-    <div><i style="background:#ffffbf"></i>141–210</div>
-    <div><i style="background:#abdda4"></i>211–280</div>
-    <div><i style="background:#2b83ba"></i>281–349</div>
+    <div>
+      <i style="background:#d7191c"></i>
+      1–70
+    </div>
+
+    <div>
+      <i style="background:#fdae61"></i>
+      71–140
+    </div>
+
+    <div>
+      <i style="background:#ffffbf"></i>
+      141–210
+    </div>
+
+    <div>
+      <i style="background:#abdda4"></i>
+      211–280
+    </div>
+
+    <div>
+      <i style="background:#2b83ba"></i>
+      281–349
+    </div>
   `;
 
   L.DomEvent.disableClickPropagation(div);
@@ -323,7 +494,9 @@ opacityControl.onAdd = function () {
   );
 
   container.innerHTML = `
-    <div class="opacity-title">城鄉階層透明度</div>
+    <div class="opacity-title">
+      城鄉階層透明度
+    </div>
 
     <input
       id="urbanicity-opacity"
@@ -331,14 +504,23 @@ opacityControl.onAdd = function () {
       min="0"
       max="1"
       step="0.05"
-      value="0.5"
+      value="${currentUrbanicityOpacity}"
     >
 
-    <span id="urbanicity-opacity-value">50%</span>
+    <span id="urbanicity-opacity-value">
+      ${Math.round(
+        currentUrbanicityOpacity * 100
+      )}%
+    </span>
   `;
 
-  L.DomEvent.disableClickPropagation(container);
-  L.DomEvent.disableScrollPropagation(container);
+  L.DomEvent.disableClickPropagation(
+    container
+  );
+
+  L.DomEvent.disableScrollPropagation(
+    container
+  );
 
   return container;
 };
@@ -350,7 +532,9 @@ let urbanicityControlsVisible = false;
 
 // 顯示透明度滑桿與圖例
 function showUrbanicityControls() {
-  if (urbanicityControlsVisible) return;
+  if (urbanicityControlsVisible) {
+    return;
+  }
 
   opacityControl.addTo(map);
   legend.addTo(map);
@@ -358,31 +542,69 @@ function showUrbanicityControls() {
   urbanicityControlsVisible = true;
 
   const opacitySlider =
-    document.getElementById("urbanicity-opacity");
+    document.getElementById(
+      "urbanicity-opacity"
+    );
 
   const opacityValue =
-    document.getElementById("urbanicity-opacity-value");
+    document.getElementById(
+      "urbanicity-opacity-value"
+    );
 
   if (opacitySlider && opacityValue) {
-    opacitySlider.addEventListener("input", function () {
-      const opacity = Number(this.value);
+  opacitySlider.addEventListener(
+    "input",
+    function () {
+      // 取得滑桿目前數值
+      currentUrbanicityOpacity =
+        Number(this.value);
 
+      // 更新右側顯示的百分比
       opacityValue.textContent =
-        `${Math.round(opacity * 100)}%`;
+        `${Math.round(
+          currentUrbanicityOpacity * 100
+        )}%`;
 
+      // 確認城鄉階層圖層已經載入
       if (urbanicityLayer) {
+        // 先將全部行政區套用新的透明度
         urbanicityLayer.setStyle({
-          fillOpacity: opacity
+          fillOpacity:
+            currentUrbanicityOpacity
         });
+
+        // 如果目前有行政區被點擊選取
+        if (selectedUrbanicityLayer) {
+          // 讓被選取區域維持加粗及較深的效果
+          selectedUrbanicityLayer.setStyle({
+            color: "#111111",
+            weight: 3,
+            fillOpacity: Math.min(
+              currentUrbanicityOpacity + 0.2,
+              1
+            )
+          });
+
+          // 讓被選取區域維持在城鄉圖層前方
+          selectedUrbanicityLayer
+            .bringToFront();
+        } else {
+          // 沒有任何區域被選取時，
+          // 才把整個城鄉階層放到底層
+          urbanicityLayer.bringToBack();
+        }
       }
-    });
-  }
+    }
+  );
+}
 }
 
 
 // 隱藏透明度滑桿與圖例
 function hideUrbanicityControls() {
-  if (!urbanicityControlsVisible) return;
+  if (!urbanicityControlsVisible) {
+    return;
+  }
 
   opacityControl.remove();
   legend.remove();
@@ -391,17 +613,28 @@ function hideUrbanicityControls() {
 }
 
 
-// 開啟圖層時顯示
+// 開啟城鄉階層圖層時
 map.on("overlayadd", function (event) {
-  if (event.layer === urbanicityLayerGroup) {
+  if (
+    event.layer === urbanicityLayerGroup
+  ) {
     showUrbanicityControls();
+
+    // 重新開啟圖層後放回底層
+    setTimeout(function () {
+      if (urbanicityLayer) {
+        urbanicityLayer.bringToBack();
+      }
+    }, 0);
   }
 });
 
 
-// 關閉圖層時隱藏
+// 關閉城鄉階層圖層時
 map.on("overlayremove", function (event) {
-  if (event.layer === urbanicityLayerGroup) {
+  if (
+    event.layer === urbanicityLayerGroup
+  ) {
     hideUrbanicityControls();
   }
 });
