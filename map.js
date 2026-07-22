@@ -270,27 +270,28 @@ let urbanicityLayer;
 
 // 城鄉階層圖例
 const legend = L.control({
-    position: "bottomleft"
+  position: "bottomleft"
 });
 
 legend.onAdd = function () {
+  const div = L.DomUtil.create("div", "legend");
 
-    const div = L.DomUtil.create("div", "legend");
+  div.innerHTML = `
+    <h4>城鄉階層</h4>
 
-    div.innerHTML = `
-        <h4>城鄉階層</h4>
+    <div><i style="background:#d7191c"></i>1–70</div>
+    <div><i style="background:#fdae61"></i>71–140</div>
+    <div><i style="background:#ffffbf"></i>141–210</div>
+    <div><i style="background:#abdda4"></i>211–280</div>
+    <div><i style="background:#2b83ba"></i>281–349</div>
+  `;
 
-        <div><i style="background:#d7191c"></i>1–70</div>
-        <div><i style="background:#fdae61"></i>71–140</div>
-        <div><i style="background:#ffffbf"></i>141–210</div>
-        <div><i style="background:#abdda4"></i>211–280</div>
-        <div><i style="background:#2b83ba"></i>281–349</div>
-    `;
+  L.DomEvent.disableClickPropagation(div);
+  L.DomEvent.disableScrollPropagation(div);
 
-    return div;
+  return div;
 };
 
-legend.addTo(map);
 
 // 城鄉階層透明度控制器
 const opacityControl = L.control({
@@ -312,35 +313,77 @@ opacityControl.onAdd = function () {
       min="0"
       max="1"
       step="0.05"
-      value="0.50"
+      value="0.5"
     >
 
     <span id="urbanicity-opacity-value">50%</span>
   `;
 
-  // 避免拖動滑桿時連地圖一起移動
   L.DomEvent.disableClickPropagation(container);
   L.DomEvent.disableScrollPropagation(container);
 
   return container;
 };
 
-opacityControl.addTo(map);
-const opacitySlider =
-  document.getElementById("urbanicity-opacity");
 
-const opacityValue =
-  document.getElementById("urbanicity-opacity-value");
+// 記錄控制器目前是否顯示
+let urbanicityControlsVisible = false;
 
-opacitySlider.addEventListener("input", function () {
-  const opacity = Number(this.value);
 
-  opacityValue.textContent =
-    `${Math.round(opacity * 100)}%`;
+// 顯示透明度滑桿與圖例
+function showUrbanicityControls() {
+  if (urbanicityControlsVisible) return;
 
-  if (urbanicityLayer) {
-    urbanicityLayer.setStyle({
-      fillOpacity: opacity
+  opacityControl.addTo(map);
+  legend.addTo(map);
+
+  urbanicityControlsVisible = true;
+
+  const opacitySlider =
+    document.getElementById("urbanicity-opacity");
+
+  const opacityValue =
+    document.getElementById("urbanicity-opacity-value");
+
+  if (opacitySlider && opacityValue) {
+    opacitySlider.addEventListener("input", function () {
+      const opacity = Number(this.value);
+
+      opacityValue.textContent =
+        `${Math.round(opacity * 100)}%`;
+
+      if (urbanicityLayer) {
+        urbanicityLayer.setStyle({
+          fillOpacity: opacity
+        });
+      }
     });
+  }
+}
+
+
+// 隱藏透明度滑桿與圖例
+function hideUrbanicityControls() {
+  if (!urbanicityControlsVisible) return;
+
+  opacityControl.remove();
+  legend.remove();
+
+  urbanicityControlsVisible = false;
+}
+
+
+// 開啟圖層時顯示
+map.on("overlayadd", function (event) {
+  if (event.layer === urbanicityLayerGroup) {
+    showUrbanicityControls();
+  }
+});
+
+
+// 關閉圖層時隱藏
+map.on("overlayremove", function (event) {
+  if (event.layer === urbanicityLayerGroup) {
+    hideUrbanicityControls();
   }
 });
