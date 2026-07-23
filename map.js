@@ -19,6 +19,7 @@ L.control.zoom({
 
 // 加入比例尺
 L.control.scale({
+  position: "bottomright",
   metric: true,
   imperial: false
 }).addTo(map);
@@ -156,6 +157,19 @@ function getAreaName(properties = {}) {
   const name = `${county} ${town}`.trim();
 
   return name || "未提供行政區名稱";
+}
+
+// 取得縣市名稱
+function getCountyName(properties = {}) {
+  return (
+    properties.COUNTYNAME ||
+    properties.COUNTY_NAM ||
+    properties.COUNTY ||
+    properties.countyname ||
+    properties.county ||
+    properties.NAME ||
+    "未提供縣市名稱"
+  );
 }
 
 // 將文字轉成安全 HTML，避免特殊字元破壞資訊視窗
@@ -716,6 +730,39 @@ const layerConfigs = {
         </div>
       `;
     }
+  },
+
+   /* -------------------------------------------------------
+     縣市界基本圖層
+  ------------------------------------------------------- */
+  countyBoundary: {
+    name: "縣市界",
+    type: "boundary",
+
+    // GeoJSON 檔案位置
+    url: "data/county.geojson",
+
+    // 預設顯示
+    visible: true,
+
+    // 縣市框線及文字透明度
+    opacity: 0.9,
+
+    layer: null,
+    boundaryLayer: null,
+    labelLayer: null,
+
+    // 縣市界線 Pane
+    paneName:
+      "overlay-pane-county-boundary",
+
+    // 縣市名稱 Pane
+    labelPaneName:
+      "overlay-pane-county-label",
+
+    // 圖層面板中的透明方框符號
+    symbolHtml:
+      '<span class="layer-symbol county-boundary-symbol"></span>'
   }
 };
 
@@ -730,7 +777,8 @@ let overlayOrder = [
   "collegeEducation",
   "agriculturalPopulation",
   "incomeMedian",
-  "urbanicity"
+  "urbanicity",
+  "countyBoundary"
 ];
 
 
@@ -738,13 +786,43 @@ let overlayOrder = [
    6. 建立可調整順序的 Pane
 ========================================================= */
 
-// 所有圖層各有一個 Pane，之後只調整 Pane 的 z-index
 Object.values(layerConfigs).forEach(config => {
-  map.createPane(config.paneName);
+  // 建立圖層本身的 Pane
+  if (!map.getPane(config.paneName)) {
+    map.createPane(config.paneName);
+  }
 
-  // Pane 不攔截滑鼠事件，由其中的 SVG 或 Marker 處理
-  map.getPane(config.paneName).style.pointerEvents =
+  map.getPane(
+    config.paneName
+  ).style.pointerEvents =
     "auto";
+
+  // 部分圖層另有文字標籤 Pane
+  if (config.labelPaneName) {
+    if (
+      !map.getPane(
+        config.labelPaneName
+      )
+    ) {
+      map.createPane(
+        config.labelPaneName
+      );
+    }
+
+    const labelPane =
+      map.getPane(
+        config.labelPaneName
+      );
+
+    // 文字放在主題面圖層上方，
+    // 但仍低於 Tooltip 和 Popup
+    labelPane.style.zIndex =
+      "625";
+
+    // 縣市名稱不攔截滑鼠
+    labelPane.style.pointerEvents =
+      "none";
+  }
 });
 
 // 依照 overlayOrder 更新所有 Pane 的上下順序
@@ -1251,6 +1329,28 @@ function setLayerOpacity(
             1
           )
         });
+    }
+  }
+
+    if (
+    config.type === "boundary"
+  ) {
+    // 調整縣市框線透明度
+    if (config.boundaryLayer) {
+      config.boundaryLayer.setStyle({
+        opacity
+      });
+    }
+
+    // 調整縣市名稱透明度
+    const labelPane =
+      map.getPane(
+        config.labelPaneName
+      );
+
+    if (labelPane) {
+      labelPane.style.opacity =
+        String(opacity);
     }
   }
 
@@ -2119,10 +2219,191 @@ renderOverlayLayerList();
 // 套用初始上下順序
 applyLayerOrder();
 
+/* =========================================================
+   載入縣市界與縣市名稱
+========================================================= */
+
+async function loadCountyBoundaryLayer() {
+  const config =
+    layerConfigs.countyBoundary;
+
+  try {
+    const response =
+      await fetch(config.url);
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP error：${response.status}`
+      );
+    }
+
+    const data =
+      await response.json();
+
+    console.log(
+      "縣市界資料：",
+      data
+    );
+
+    if (
+      data.features &&
+      data.features.length > 0
+    ) {
+      console.log(
+        "縣市界欄位：",
+        Object.keys(
+          data.features[0]
+            .properties || {}
+        )
+      );
+    }
+
+    // 儲存每個縣市的範圍，
+    // 避免同一縣市出現重複名稱
+    const countyBounds =
+      new Map();
+
+    const boundaryLayer =
+      L.geoJSON(data, {
+        pane: config.paneName,
+
+        // 不填色，只顯示縣市框線
+        style() {
+          return {
+            pane:
+              config.paneName,
+
+            color: "#4f5962",
+
+            // 線條保持較細
+            weight: 0.9,
+
+            opacity:
+              config.opacity,
+
+            fill: false,
+            fillOpacity: 0
+          };
+        },
+
+        // 縣市界不攔截主題圖層操作
+        interactive: false,
+
+        onEachFeature(
+          feature,
+          layer
+        ) {
+          const properties =
+            feature.properties || {};
+
+          const countyName =
+            getCountyName(
+              properties
+            );
+
+          if (
+            !countyBounds.has(
+              countyName
+            )
+          ) {
+            countyBounds.set(
+              countyName,
+              L.latLngBounds([])
+            );
+          }
+
+          countyBounds
+            .get(countyName)
+            .extend(
+              layer.getBounds()
+            );
+        }
+      });
+
+    // 建立縣市名稱圖層
+    const labelLayer =
+      L.layerGroup();
+
+    countyBounds.forEach(
+      (bounds, countyName) => {
+        if (!bounds.isValid()) {
+          return;
+        }
+
+        const labelPosition =
+          bounds.getCenter();
+
+        const labelMarker =
+          L.marker(
+            labelPosition,
+            {
+              pane:
+                config.labelPaneName,
+
+              interactive: false,
+
+              icon: L.divIcon({
+                className:
+                  "county-label-marker",
+
+                html: `
+                  <span class="county-name-label">
+                    ${escapeHtml(
+                      countyName
+                    )}
+                  </span>
+                `,
+
+                iconSize: null,
+                iconAnchor: [0, 0]
+              })
+            }
+          );
+
+        labelLayer.addLayer(
+          labelMarker
+        );
+      }
+    );
+
+    config.boundaryLayer =
+      boundaryLayer;
+
+    config.labelLayer =
+      labelLayer;
+
+    // 將界線和名稱合併成一個可控制圖層
+    config.layer =
+      L.layerGroup([
+        boundaryLayer,
+        labelLayer
+      ]);
+
+    if (config.visible) {
+      config.layer.addTo(map);
+    }
+
+    setLayerOpacity(
+      "countyBoundary",
+      config.opacity
+    );
+
+    applyLayerOrder();
+  } catch (error) {
+    console.error(
+      "縣市界圖層載入失敗：",
+      error
+    );
+  }
+}
+
 // 載入點圖層
 loadMentalHealthLayer();
 
-// 載入所有面圖層
+// 載入縣市界基本圖層
+loadCountyBoundaryLayer();
+
+// 載入所有主題面圖層
 Object.keys(layerConfigs)
   .filter(
     key =>

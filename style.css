@@ -898,6 +898,21 @@ body {
   background: #43a2ca;
 }
 
+/* 縣市界圖層控制符號 */
+.county-boundary-symbol {
+  width: 13px;
+  height: 13px;
+
+  background: transparent;
+
+  border:
+    2px solid #4f5962;
+
+  border-radius: 2px;
+
+  box-sizing: border-box;
+}
+
 /* 避開上方浮動標題 */
 .leaflet-top {
   top: 82px;
@@ -1282,4 +1297,145 @@ body {
 
     font-size: 10px;
   }
+}
+
+/* =========================================================
+   右下角控制器排列
+   第一列：圖例
+   第二列：比例尺、Leaflet 標誌
+========================================================= */
+
+.leaflet-bottom.leaflet-right {
+  display: grid;
+
+  grid-template-columns:
+    auto auto;
+
+  grid-template-areas:
+    "legend legend"
+    "scale attribution";
+
+  align-items: end;
+  justify-content: end;
+
+  column-gap: 7px;
+  row-gap: 6px;
+
+  right: 10px;
+  bottom: 8px;
+}
+
+
+/* 移除 Leaflet 原本的浮動與外距 */
+.leaflet-bottom.leaflet-right
+.leaflet-control {
+  float: none;
+  margin: 0;
+}
+
+
+/* 圖例放在第一列右側 */
+.leaflet-bottom.leaflet-right
+.multi-layer-legend {
+  grid-area: legend;
+  justify-self: end;
+}
+
+
+/* 比例尺放在第二列左側 */
+.leaflet-bottom.leaflet-right
+.leaflet-control-scale {
+  grid-area: scale;
+  align-self: end;
+}
+
+
+/* Leaflet 標誌／圖資來源放在第二列右側 */
+.leaflet-bottom.leaflet-right
+.leaflet-control-attribution {
+  grid-area: attribution;
+  align-self: end;
+}
+
+/* 比例尺樣式 */
+.leaflet-control-scale-line {
+  height: 18px;
+
+  padding:
+    1px 5px 0;
+
+  border-width:
+    0 2px 2px;
+
+  background:
+    rgba(255, 255, 255, 0.78);
+
+  color: #4f565a;
+
+  font-size: 10px;
+  line-height: 14px;
+
+  box-sizing: border-box;
+}
+
+
+/* Leaflet 圖資來源欄 */
+.leaflet-control-attribution {
+  min-height: 18px;
+
+  padding:
+    2px 5px !important;
+
+  background:
+    rgba(255, 255, 255, 0.78) !important;
+
+  font-size: 10px;
+  line-height: 14px;
+}
+
+/* =========================================================
+   縣市名稱標籤
+========================================================= */
+
+.county-label-marker {
+  width: 0 !important;
+  height: 0 !important;
+
+  background: transparent;
+  border: none;
+
+  pointer-events: none;
+}
+
+.county-name-label {
+  position: absolute;
+
+  transform:
+    translate(-50%, -50%);
+
+  white-space: nowrap;
+
+  color: #30383d;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+
+  letter-spacing: 0.5px;
+
+  /* 白色描邊，避免文字被底圖或主題圖層遮住 */
+  text-shadow:
+    -1px -1px 0
+      rgba(255, 255, 255, 0.95),
+    1px -1px 0
+      rgba(255, 255, 255, 0.95),
+    -1px 1px 0
+      rgba(255, 255, 255, 0.95),
+    1px 1px 0
+      rgba(255, 255, 255, 0.95),
+    0 0 4px
+      rgba(255, 255, 255, 0.9);
+
+  pointer-events: none;
+  user-select: none;
 }
