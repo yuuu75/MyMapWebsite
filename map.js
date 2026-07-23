@@ -98,9 +98,187 @@ const overlayMaps = {
   "城鄉階層": urbanicityLayerGroup
 };
 
-L.control.layers(baseMaps, overlayMaps, {
-  collapsed: false
-}).addTo(map);
+// 自訂圖層控制面板
+const customLayerControl = L.control({
+  position: "topright"
+});
+
+customLayerControl.onAdd = function () {
+  const container = L.DomUtil.create(
+    "div",
+    "custom-layer-control"
+  );
+
+  container.innerHTML = `
+    <div class="layer-control-title">
+      圖層控制
+    </div>
+
+    <div class="layer-control-section">
+      <div class="layer-section-title">
+        圖層
+      </div>
+
+      <label class="layer-control-item">
+        <input
+          type="checkbox"
+          id="toggle-mental-health"
+          checked
+        >
+        <span class="layer-symbol mental-health-symbol"></span>
+        <span>社區心理衛生中心</span>
+      </label>
+
+      <label class="layer-control-item">
+        <input
+          type="checkbox"
+          id="toggle-urbanicity"
+          checked
+        >
+        <span class="layer-symbol urbanicity-symbol"></span>
+        <span>城鄉階層</span>
+      </label>
+    </div>
+
+    <div class="layer-control-divider"></div>
+
+    <div class="layer-control-section">
+      <div class="layer-section-title">
+        底圖
+      </div>
+
+      <label class="layer-control-item">
+        <input
+          type="radio"
+          name="base-map"
+          value="cartoVoyager"
+          checked
+        >
+        <span>預設底圖</span>
+      </label>
+
+      <label class="layer-control-item">
+        <input
+          type="radio"
+          name="base-map"
+          value="cartoLight"
+        >
+        <span>簡潔淺色底圖</span>
+      </label>
+
+      <label class="layer-control-item">
+        <input
+          type="radio"
+          name="base-map"
+          value="osm"
+        >
+        <span>OpenStreetMap</span>
+      </label>
+
+      <label class="layer-control-item">
+        <input
+          type="radio"
+          name="base-map"
+          value="esriImagery"
+        >
+        <span>衛星影像底圖</span>
+      </label>
+    </div>
+  `;
+
+  // 避免操作面板時觸發地圖拖曳或縮放
+  L.DomEvent.disableClickPropagation(container);
+  L.DomEvent.disableScrollPropagation(container);
+
+  return container;
+};
+
+customLayerControl.addTo(map);
+
+// 圖層開關
+const mentalHealthCheckbox =
+  document.getElementById(
+    "toggle-mental-health"
+  );
+
+const urbanicityCheckbox =
+  document.getElementById(
+    "toggle-urbanicity"
+  );
+
+mentalHealthCheckbox.addEventListener(
+  "change",
+  function () {
+    if (this.checked) {
+      map.addLayer(mentalHealthCluster);
+    } else {
+      map.removeLayer(mentalHealthCluster);
+    }
+  }
+);
+
+urbanicityCheckbox.addEventListener(
+  "change",
+  function () {
+    if (this.checked) {
+      map.addLayer(urbanicityLayerGroup);
+      showUrbanicityControls();
+
+      setTimeout(function () {
+        if (urbanicityLayer) {
+          urbanicityLayer.bringToBack();
+        }
+      }, 0);
+    } else {
+      map.removeLayer(urbanicityLayerGroup);
+      hideUrbanicityControls();
+    }
+  }
+);
+
+
+// ==============================
+// 底圖切換
+// ==============================
+
+const baseLayerList = {
+  cartoVoyager: cartoVoyager,
+  cartoLight: cartoLightLayer,
+  osm: osmLayer,
+  esriImagery: esriImagery
+};
+
+const baseMapRadios =
+  document.querySelectorAll(
+    'input[name="base-map"]'
+  );
+
+baseMapRadios.forEach(function (radio) {
+  radio.addEventListener(
+    "change",
+    function () {
+      if (!this.checked) {
+        return;
+      }
+
+      // 移除目前所有底圖
+      Object.values(baseLayerList)
+        .forEach(function (baseLayer) {
+          if (map.hasLayer(baseLayer)) {
+            map.removeLayer(baseLayer);
+          }
+        });
+
+      // 加入使用者選擇的底圖
+      const selectedBaseLayer =
+        baseLayerList[this.value];
+
+      if (selectedBaseLayer) {
+        selectedBaseLayer.addTo(map);
+      }
+    }
+  );
+});
 
 // 城鄉階層相關變數
 let urbanicityLayer = null;
@@ -659,7 +837,7 @@ legend.onAdd = function () {
 
 // 城鄉階層透明度控制器
 const opacityControl = L.control({
-  position: "bottomright"
+  position: "topright"
 });
 
 opacityControl.onAdd = function () {

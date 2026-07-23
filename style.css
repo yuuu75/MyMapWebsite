@@ -558,3 +558,158 @@ body {
     transition: none;
   }
 }
+
+/* ==============================
+   自訂圖層控制面板
+============================== */
+
+.custom-layer-control {
+  width: 180px;
+  padding: 14px;
+
+  /*
+    70% 透明度：
+    alpha 0.7 代表背景有 70% 不透明度
+  */
+  background: rgba(255, 255, 255, 0.7);
+
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+
+  box-shadow:
+    0 5px 18px rgba(24, 35, 42, 0.18);
+
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+
+  color: #30363a;
+
+  font-family:
+    "Noto Sans TC",
+    "Microsoft JhengHei",
+    sans-serif;
+}
+
+
+/* 整個面板標題 */
+.layer-control-title {
+  margin-bottom: 12px;
+
+  color: #6c2a34;
+
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+
+/* 各區塊 */
+.layer-control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+/* 「圖層」、「底圖」小標題 */
+.layer-section-title {
+  margin-bottom: 5px;
+
+  color: #7b8388;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+
+/* 每一個選項 */
+.layer-control-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-height: 20px;
+  padding: 1px 6px;
+
+  border-radius: 7px;
+
+  color: #30363a;
+
+  font-size: 13px;
+  line-height: 1.4;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease;
+}
+
+
+.layer-control-item:hover {
+  background: rgba(160, 54, 65, 0.09);
+}
+
+
+/* Checkbox 與 Radio */
+.layer-control-item input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+
+  accent-color: #a03641;
+
+  cursor: pointer;
+}
+
+
+/* 圖層與底圖之間的分隔線 */
+.layer-control-divider {
+  height: 1px;
+  margin: 11px 0;
+
+  background:
+    rgba(75, 84, 89, 0.16);
+}
+
+
+/* 圖層符號 */
+.layer-symbol {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+
+/* 心理衛生中心點位符號 */
+.mental-health-symbol {
+  width: 10px;
+  height: 10px;
+
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+
+  background: #a03641;
+
+  box-shadow:
+    0 1px 3px rgba(75, 24, 34, 0.38);
+}
+
+
+/* 城鄉階層面狀符號 */
+.urbanicity-symbol {
+  width: 13px;
+  height: 13px;
+
+  border: 1px solid #666666;
+  border-radius: 2px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #d7191c 0%,
+      #fdae61 25%,
+      #ffffbf 50%,
+      #abdda4 75%,
+      #2b83ba 100%
+    );
+}
