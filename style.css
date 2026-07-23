@@ -79,11 +79,11 @@ body {
 .site-header h1 {
   margin: 0;
   font-family: "Noto Sans TC", serif;
-  font-size: 27px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 0.7px;
   line-height: 1.35;
-  color:#6c2a34;
+  color:#3e151b;
 }
 
 .site-header p {
