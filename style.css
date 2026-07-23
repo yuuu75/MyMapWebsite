@@ -811,8 +811,8 @@ body {
 
 /* 城鄉階層面狀符號 */
 .urbanicity-symbol {
-  width: 13px;
-  height: 13px;
+  width: 10px;
+  height: 10px;
 
   border: 1px solid #666666;
   border-radius: 2px;
@@ -828,7 +828,397 @@ body {
     );
 }
 
+/* 大專以上人口比例面狀符號 */
+.college-education-symbol {
+  width: 10px;
+  height: 10px;
+
+  border: 1px solid #666666;
+  border-radius: 2px;
+
+  background:#7a0177;
+}
+
+/* 農戶人口數面狀圖層符號 */
+.agricultural-population-symbol {
+  width: 10px;
+  height: 10px;
+
+  border: 1px solid #9b6658;
+  border-radius: 2px;
+
+  background:#d9471c;
+}
+
+/* 綜合所得總額中位數圖層符號 */
+.income-median-symbol {
+  width: 13px;
+  height: 13px;
+
+  border: 1px solid #287da2;
+  border-radius: 2px;
+
+  /* 圖層控制面板使用單色 */
+  background: #43a2ca;
+}
+
 /* 避開上方浮動標題 */
 .leaflet-top {
   top: 82px;
+}
+
+/* 圖層卡片 */
+.overlay-layer-card {
+  padding: 9px 4px;
+  border-bottom: 1px solid rgba(70, 78, 82, 0.12);
+}
+
+.overlay-layer-card:last-child {
+  border-bottom: none;
+}
+
+/* 圖層名稱與排序按鈕 */
+.overlay-layer-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.overlay-layer-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.overlay-layer-name > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 上下移動按鈕 */
+.overlay-order-buttons {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.overlay-order-button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #687176;
+  font-size: 9px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.overlay-order-button:hover:not(:disabled) {
+  background: rgba(160, 54, 65, 0.08);
+  color: #8c303a;
+}
+
+.overlay-order-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* 每一層自己的透明度 */
+.overlay-opacity-row {
+  display: grid;
+  grid-template-columns: auto 1fr 38px;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+  padding-left: 22px;
+  color: #747c81;
+  font-size: 11px;
+}
+
+.overlay-opacity-slider {
+  width: 100%;
+  min-width: 70px;
+  margin: 0;
+  accent-color: #a03641;
+  cursor: pointer;
+}
+
+.overlay-opacity-value {
+  color: #6c2a34;
+  text-align: right;
+  font-size: 11px;
+}
+
+/* 圖層色塊 */
+.layer-symbol {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  border: 1px solid #666666;
+  border-radius: 2px;
+}
+
+.urbanicity-symbol {
+  background: linear-gradient(
+    135deg,
+    #d7191c 0%,
+    #fdae61 25%,
+    #ffffbf 50%,
+    #abdda4 75%,
+    #2b83ba 100%
+  );
+}
+
+.college-education-symbol {
+  background: linear-gradient(
+    135deg,
+    #feebe2 0%,
+    #fbb4b9 25%,
+    #f768a1 50%,
+    #c51b8a 75%,
+    #7a0177 100%
+  );
+}
+
+/* 多圖層圖例 */
+.multi-layer-legend {
+  max-height: 45vh;
+  overflow-y: auto;
+  min-width: 155px;
+}
+
+.legend-layer-section {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(70, 78, 82, 0.14);
+}
+
+.legend-layer-section:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.legend-layer-section h4 {
+  margin: 0 0 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 4px 0;
+}
+
+.legend-item i {
+  display: inline-block;
+  width: 16px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 1px solid rgba(60, 60, 60, 0.35);
+}
+
+.legend-item i.legend-circle {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+/* 面圖層資訊視窗 */
+.thematic-info {
+  min-width: 190px;
+  color: #30363a;
+  font-family:
+    "Noto Sans TC",
+    "Microsoft JhengHei",
+    sans-serif;
+}
+
+.thematic-info > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #6c2a34;
+  font-size: 14px;
+}
+
+.thematic-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(75, 84, 89, 0.1);
+  font-size: 12px;
+}
+
+.thematic-info-row:last-child {
+  border-bottom: none;
+}
+
+.thematic-info-row span {
+  color: #747c81;
+}
+
+.thematic-info-row strong {
+  color: #30363a;
+  text-align: right;
+}
+
+/* =========================================================
+   標題內容整體排列
+========================================================= */
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+}
+
+
+/* =========================================================
+   標題主要文字區
+========================================================= */
+
+.header-main {
+  min-width: 0;
+  flex: 1;
+}
+
+
+/* =========================================================
+   主標題與資訊標籤排列
+========================================================= */
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  min-width: 0;
+}
+
+.header-title-row h1 {
+  margin: 0;
+
+  color: #4f252b;
+
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+
+  white-space: nowrap;
+}
+
+.header-main p {
+  margin: 3px 0 0;
+
+  color: #747c81;
+
+  font-size: 11px;
+  line-height: 1.4;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   標題旁資訊標籤
+========================================================= */
+
+.header-information {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-info-tag {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 4px 8px;
+
+  border: 1px solid
+    rgba(160, 54, 65, 0.16);
+
+  border-radius: 999px;
+
+  background:
+    rgba(160, 54, 65, 0.07);
+
+  color: #7d343d;
+
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   右側操作提示
+========================================================= */
+
+.header-operation-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  flex-shrink: 0;
+
+  padding-left: 14px;
+
+  border-left: 1px solid
+    rgba(70, 78, 82, 0.14);
+
+  color: #687176;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+}
+
+.operation-tip-icon {
+  color: #a03641;
+}
+
+
+/* =========================================================
+   平板與手機顯示調整
+========================================================= */
+
+@media (max-width: 900px) {
+  .header-operation-tip {
+    display: none;
+  }
+
+  .header-info-tag:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .header-information {
+    display: none;
+  }
+
+  .header-title-row h1 {
+    font-size: 16px;
+  }
+
+  .header-main p {
+    max-width: 250px;
+
+    font-size: 10px;
+  }
 }
