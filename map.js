@@ -4,8 +4,18 @@
 
 // 建立 Leaflet 地圖，預設中心位於臺北市附近
 const map = L.map("map", {
-  preferCanvas: false
+  preferCanvas: false,
+  
+// 關閉 Leaflet 預設左上角縮放按鈕
+  zoomControl: false
 }).setView([25.0478, 121.5319], 12);
+
+// 在右上角重新建立縮放按鈕
+L.control.zoom({
+  position: "topright",
+  zoomInTitle: "放大",
+  zoomOutTitle: "縮小"
+}).addTo(map);
 
 // 加入比例尺
 L.control.scale({
@@ -770,7 +780,7 @@ function applyLayerOrder() {
 ========================================================= */
 
 const customLayerControl = L.control({
-  position: "topright"
+  position: "topleft"
 });
 
 customLayerControl.onAdd = function () {
@@ -955,6 +965,9 @@ layerPanelClose.addEventListener(
     closeLayerPanel();
   }
 );
+
+// 網頁載入時預設開啟圖層控制面板
+openLayerPanel();
 
 // 圖層控制面板不會因點擊地圖而自動收起。
 // 使用者需按右上角的 × 按鈕關閉面板。
@@ -1982,7 +1995,7 @@ async function loadMentalHealthLayer() {
 ========================================================= */
 
 const legendControl = L.control({
-  position: "bottomleft"
+  position: "bottomright"
 });
 
 legendControl.onAdd = function () {

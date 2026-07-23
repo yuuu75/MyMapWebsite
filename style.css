@@ -632,14 +632,24 @@ body {
 .layer-panel-content {
   display: none;
 
-  width: 180px;
-  padding: 12px 14px 14px;
+  width: 250px;
+  padding: 16px 14px 14px;
+
+/* 面板最高不超出瀏覽器畫面 */
+  max-height: calc(100vh - 140px);
+
+  /* 內容太長時顯示垂直捲軸 */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  box-sizing: border-box;
+  overscroll-behavior: contain;
 
   background:
-    rgba(255, 255, 255, 0.702);
+    rgba(255, 255, 255, 0.5);
 
   border: 1px solid
-    rgba(255, 255, 255, 0.702);
+    rgba(255, 255, 255, 0.5);
   border-radius: 12px;
 
   box-shadow:
@@ -650,6 +660,32 @@ body {
   -webkit-backdrop-filter: blur(9px);
 
   color: #30363a;
+
+  /* Firefox 的簡潔捲軸 */
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(108, 42, 52, 0.35)
+    transparent;
+}
+
+/* Chrome、Edge 的捲軸樣式 圖層面板捲軸 */
+.layer-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layer-panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.layer-panel-content::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background:
+    rgba(108, 42, 52, 0.28);
+}
+
+.layer-panel-content::-webkit-scrollbar-thumb:hover {
+  background:
+    rgba(108, 42, 52, 0.45);
 }
 
 .layer-panel-content.is-open {
@@ -836,7 +872,7 @@ body {
   border: 1px solid #666666;
   border-radius: 2px;
 
-  background:#7a0177;
+  background:#7a4179;
 }
 
 /* 農戶人口數面狀圖層符號 */
@@ -879,32 +915,60 @@ body {
 
 /* 圖層名稱與排序按鈕 */
 .overlay-layer-main-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+
+  /* 左側名稱盡量占滿，右側保留上下鍵 */
+  grid-template-columns:
+    minmax(0, 1fr) auto;
+
+  align-items: start;
+  gap: 5px;
 }
 
 .overlay-layer-name {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  display: grid;
+
+  /* Checkbox、符號、圖層名稱 */
+  grid-template-columns:
+    15px 13px minmax(0, 1fr);
+
+  align-items: start;
+  gap: 6px;
+
   min-width: 0;
+
   cursor: pointer;
-  font-size: 13px;
+
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .overlay-layer-name > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1;
+
+  /* 允許圖層名稱換行 */
+  white-space: normal;
+
+  /* 不顯示省略符號 */
+  overflow: visible;
+  text-overflow: clip;
+
+  /* 中文盡量依詞句正常換行 */
+  word-break: normal;
+  overflow-wrap: anywhere;
+
+  line-height: 1.4;
 }
 
 /* 上下移動按鈕 */
 .overlay-order-buttons {
   display: flex;
   gap: 1px;
+
   flex-shrink: 0;
+  align-self: start;
+
+  margin-top: 0;
 }
 
 .overlay-order-button {
@@ -933,13 +997,20 @@ body {
 /* 每一層自己的透明度 */
 .overlay-opacity-row {
   display: grid;
-  grid-template-columns: auto 1fr 38px;
+  grid-template-columns:
+    auto 78px 32px;
+
   align-items: center;
-  gap: 7px;
-  margin-top: 7px;
-  padding-left: 22px;
+  justify-content: start;
+
+  gap: 5px;
+
+  margin-top: 4px;
+
+  /* 對齊圖層名稱文字 */
+  padding-left: 34px;
   color: #747c81;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .overlay-opacity-slider {
@@ -976,16 +1047,6 @@ body {
   );
 }
 
-.college-education-symbol {
-  background: linear-gradient(
-    135deg,
-    #feebe2 0%,
-    #fbb4b9 25%,
-    #f768a1 50%,
-    #c51b8a 75%,
-    #7a0177 100%
-  );
-}
 
 /* 多圖層圖例 */
 .multi-layer-legend {
