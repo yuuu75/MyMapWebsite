@@ -107,6 +107,8 @@ let urbanicityLayer = null;
 let selectedUrbanicityLayer = null;
 let currentUrbanicityOpacity = 0.5;
 
+// 記錄目前被點擊的心理衛生中心
+let selectedMentalHealthLayer = null;
 
 // ==============================
 // 讀取社區心理衛生中心 GeoJSON
@@ -124,50 +126,223 @@ fetch("data/mental_health_center.geojson")
     const mentalHealthLayer = L.geoJSON(data, {
       pointToLayer: function (feature, latlng) {
         return L.circleMarker(latlng, {
-          // 未群聚的個別點位也固定在上層
           pane: "mentalHealthPane",
-          radius: 6,
-          color: "rgb(0, 0, 0)",
+
+          // 讓 CSS 可以控制點位動畫
+          className: "mental-health-marker",
+
+          radius: 7,
+          color: "#ffffff",
           fillColor: "#a03641",
-          weight: 2,
-          fillOpacity: 0.85
+          weight: 2.5,
+          opacity: 1,
+          fillOpacity: 0.92
         });
       },
 
       onEachFeature: function (feature, layer) {
-        const p = feature.properties || {};
+  const p = feature.properties || {};
 
-        const centerName =
-          p["Column1.title"] ||
-          "未提供機構名稱";
+  const centerName =
+    p["Column1.title"] ||
+    "未提供機構名稱";
 
-        const address =
-          p["Column1.address"] ||
-          "未提供地址";
+  const address =
+    p["Column1.address"] ||
+    "未提供地址";
 
-        const phone =
-          p["Column1.tel"] ||
-          "未提供電話";
+  const phone =
+    p["Column1.tel"] ||
+    "未提供電話";
 
-        const serviceTime =
-          p["Column1.time_info"] ||
-          "未提供服務時間";
+  const serviceTime =
+    p["Column1.time_info"] ||
+    "未提供服務時間";
 
-        const organizationType =
-          p["Column1.tag_type"] ||
-          "未提供機構類型";
+  const organizationType =
+    p["Column1.tag_type"] ||
+    "未提供機構類型";
 
-        layer.bindPopup(`
-          <div class="mental-health-popup">
-            <strong>${centerName}</strong><br><br>
+  // Google Maps 風格資訊卡
+  const popupContent = `
+    <div class="mental-health-popup-card">
 
-            <b>機構類型：</b>${organizationType}<br>
-            <b>地址：</b>${address}<br>
-            <b>電話：</b>${phone}<br>
-            <b>服務時間：</b>${serviceTime}<br>
+      <div class="popup-card-header">
+       
+
+        <div class="popup-card-title">
+          <span class="popup-card-category">
+            心理衛生資源
+          </span>
+
+          <strong>
+            ${centerName}
+          </strong>
+        </div>
+      </div>
+
+      <div class="popup-card-body">
+
+        <div class="popup-info-row">
+          <span class="popup-info-icon">
+            ●
+          </span>
+
+          <div>
+            <span class="popup-info-label">
+              機構類型
+            </span>
+
+            <span class="popup-info-value">
+              ${organizationType}
+            </span>
           </div>
-        `);
+        </div>
+
+        <div class="popup-info-row">
+          <span class="popup-info-icon">
+            📍
+          </span>
+
+          <div>
+            <span class="popup-info-label">
+              地址
+            </span>
+
+            <span class="popup-info-value">
+              ${address}
+            </span>
+          </div>
+        </div>
+
+        <div class="popup-info-row">
+          <span class="popup-info-icon">
+            ☎
+          </span>
+
+          <div>
+            <span class="popup-info-label">
+              電話
+            </span>
+
+            <span class="popup-info-value">
+              ${phone}
+            </span>
+          </div>
+        </div>
+
+        <div class="popup-info-row">
+          <span class="popup-info-icon">
+            ◷
+          </span>
+
+          <div>
+            <span class="popup-info-label">
+              服務時間
+            </span>
+
+            <span class="popup-info-value">
+              ${serviceTime}
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <a
+        class="popup-navigation-button"
+        href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          address
+        )}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        在 Google Maps 中查看
+      </a>
+
+    </div>
+  `;
+
+  layer.bindPopup(
+    popupContent,
+    {
+      className: "modern-mental-health-popup",
+      maxWidth: 330,
+      minWidth: 270,
+      closeButton: true,
+      autoPanPadding: [30, 30]
+    }
+  );
+
+  // 滑鼠移入：平滑放大
+  layer.on("mouseover", function () {
+    const element = layer.getElement();
+
+    if (element) {
+      element.classList.add(
+        "mental-health-marker-hover"
+      );
+    }
+
+    layer.bringToFront();
+  });
+
+  // 滑鼠移出：恢復大小
+  layer.on("mouseout", function () {
+    const element = layer.getElement();
+
+    if (element) {
+      element.classList.remove(
+        "mental-health-marker-hover"
+      );
+    }
+  });
+
+  // 點擊：加入光暈
+  layer.on("click", function () {
+    // 先移除前一個點位的選取效果
+    if (
+      selectedMentalHealthLayer &&
+      selectedMentalHealthLayer !== layer
+    ) {
+      const previousElement =
+        selectedMentalHealthLayer.getElement();
+
+      if (previousElement) {
+        previousElement.classList.remove(
+          "mental-health-marker-selected"
+        );
       }
+    }
+
+    selectedMentalHealthLayer = layer;
+
+    const element = layer.getElement();
+
+    if (element) {
+      element.classList.add(
+        "mental-health-marker-selected"
+      );
+    }
+
+    layer.bringToFront();
+  });
+
+  // Popup 關閉時取消選取
+  layer.on("popupclose", function () {
+    const element = layer.getElement();
+
+    if (element) {
+      element.classList.remove(
+        "mental-health-marker-selected"
+      );
+    }
+
+    if (selectedMentalHealthLayer === layer) {
+      selectedMentalHealthLayer = null;
+    }
+  });
+}
     });
 
     mentalHealthCluster.addLayer(
