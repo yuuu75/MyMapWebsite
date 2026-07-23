@@ -110,83 +110,119 @@ customLayerControl.onAdd = function () {
   );
 
   container.innerHTML = `
-    <div class="layer-control-title">
-      圖層控制
-    </div>
+    <button
+      type="button"
+      id="layer-panel-button"
+      class="layer-panel-button"
+      title="開啟圖層控制"
+      aria-label="開啟圖層控制"
+      aria-expanded="false"
+    >
+      ≡
+    </button>
 
-    <div class="layer-control-section">
-      <div class="layer-section-title">
-        圖層
+    <div
+      id="layer-panel-content"
+      class="layer-panel-content"
+      aria-hidden="true"
+    >
+      <div class="layer-control-header">
+        <div class="layer-control-title">
+          圖層控制
+        </div>
+
+        <button
+          type="button"
+          id="layer-panel-close"
+          class="layer-panel-close"
+          title="收起圖層控制"
+          aria-label="收起圖層控制"
+        >
+          ×
+        </button>
       </div>
 
-      <label class="layer-control-item">
-        <input
-          type="checkbox"
-          id="toggle-mental-health"
-          checked
-        >
-        <span class="layer-symbol mental-health-symbol"></span>
-        <span>社區心理衛生中心</span>
-      </label>
+      <div class="layer-control-section">
+        <div class="layer-section-title">
+          圖層
+        </div>
 
-      <label class="layer-control-item">
-        <input
-          type="checkbox"
-          id="toggle-urbanicity"
-          checked
-        >
-        <span class="layer-symbol urbanicity-symbol"></span>
-        <span>城鄉階層</span>
-      </label>
-    </div>
+        <label class="layer-control-item">
+          <input
+            type="checkbox"
+            id="toggle-mental-health"
+            checked
+          >
 
-    <div class="layer-control-divider"></div>
+          <span
+            class="layer-symbol mental-health-symbol"
+          ></span>
 
-    <div class="layer-control-section">
-      <div class="layer-section-title">
-        底圖
+          <span>社區心理衛生中心</span>
+        </label>
+
+        <label class="layer-control-item">
+          <input
+            type="checkbox"
+            id="toggle-urbanicity"
+            checked
+          >
+
+          <span
+            class="layer-symbol urbanicity-symbol"
+          ></span>
+
+          <span>城鄉階層</span>
+        </label>
       </div>
 
-      <label class="layer-control-item">
-        <input
-          type="radio"
-          name="base-map"
-          value="cartoVoyager"
-          checked
-        >
-        <span>預設底圖</span>
-      </label>
+      <div class="layer-control-divider"></div>
 
-      <label class="layer-control-item">
-        <input
-          type="radio"
-          name="base-map"
-          value="cartoLight"
-        >
-        <span>簡潔淺色底圖</span>
-      </label>
+      <div class="layer-control-section">
+        <div class="layer-section-title">
+          底圖
+        </div>
 
-      <label class="layer-control-item">
-        <input
-          type="radio"
-          name="base-map"
-          value="osm"
-        >
-        <span>OpenStreetMap</span>
-      </label>
+        <label class="layer-control-item">
+          <input
+            type="radio"
+            name="base-map"
+            value="cartoVoyager"
+            checked
+          >
+          <span>預設底圖</span>
+        </label>
 
-      <label class="layer-control-item">
-        <input
-          type="radio"
-          name="base-map"
-          value="esriImagery"
-        >
-        <span>衛星影像底圖</span>
-      </label>
+        <label class="layer-control-item">
+          <input
+            type="radio"
+            name="base-map"
+            value="cartoLight"
+          >
+          <span>簡潔淺色底圖</span>
+        </label>
+
+        <label class="layer-control-item">
+          <input
+            type="radio"
+            name="base-map"
+            value="osm"
+          >
+          <span>OpenStreetMap</span>
+        </label>
+
+        <label class="layer-control-item">
+          <input
+            type="radio"
+            name="base-map"
+            value="esriImagery"
+          >
+          <span>衛星影像底圖</span>
+        </label>
+      </div>
     </div>
   `;
 
-  // 避免操作面板時觸發地圖拖曳或縮放
   L.DomEvent.disableClickPropagation(container);
   L.DomEvent.disableScrollPropagation(container);
 
@@ -194,6 +230,82 @@ customLayerControl.onAdd = function () {
 };
 
 customLayerControl.addTo(map);
+
+const layerPanelButton =
+  document.getElementById(
+    "layer-panel-button"
+  );
+
+const layerPanelContent =
+  document.getElementById(
+    "layer-panel-content"
+  );
+
+const layerPanelClose =
+  document.getElementById(
+    "layer-panel-close"
+  );
+
+function openLayerPanel() {
+  layerPanelContent.classList.add(
+    "is-open"
+  );
+
+  layerPanelButton.classList.add(
+    "is-hidden"
+  );
+
+  layerPanelButton.setAttribute(
+    "aria-expanded",
+    "true"
+  );
+
+  layerPanelContent.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+}
+
+function closeLayerPanel() {
+  layerPanelContent.classList.remove(
+    "is-open"
+  );
+
+  layerPanelButton.classList.remove(
+    "is-hidden"
+  );
+
+  layerPanelButton.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+
+  layerPanelContent.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+}
+
+layerPanelButton.addEventListener(
+  "click",
+  function (event) {
+    event.stopPropagation();
+    openLayerPanel();
+  }
+);
+
+layerPanelClose.addEventListener(
+  "click",
+  function (event) {
+    event.stopPropagation();
+    closeLayerPanel();
+  }
+);
+
+// 點擊地圖其他位置時，自動收起
+map.on("click", function () {
+  closeLayerPanel();
+});
 
 // 圖層開關
 const mentalHealthCheckbox =
