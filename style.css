@@ -107,7 +107,7 @@ body {
 }
 
 .urbanicity-opacity-control {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.72);
   padding: 10px 12px;
   border-radius: 6px;
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
@@ -133,7 +133,7 @@ body {
   text-align: right;
 }
 .legend{
-    background:white;
+    background: rgba(255, 255, 255, 0.70);
     padding:10px 12px;
     border-radius:8px;
     box-shadow:0 1px 5px rgba(0,0,0,.35);
@@ -593,7 +593,7 @@ body {
   border-radius: 10px;
 
   background:
-    rgba(255, 255, 255, 0.78);
+    rgba(255, 255, 255, 0.702);
 
   box-shadow:
     0 4px 14px
@@ -615,7 +615,7 @@ body {
 
 .layer-panel-button:hover {
   background:
-    rgba(255, 255, 255, 0.95);
+    rgba(255, 255, 255, 0.702);
 
   box-shadow:
     0 6px 18px
@@ -636,10 +636,10 @@ body {
   padding: 12px 14px 14px;
 
   background:
-    rgba(255, 255, 255, 0.72);
+    rgba(255, 255, 255, 0.702);
 
   border: 1px solid
-    rgba(255, 255, 255, 0.78);
+    rgba(255, 255, 255, 0.702);
   border-radius: 12px;
 
   box-shadow:
@@ -826,4 +826,9 @@ body {
       #abdda4 75%,
       #2b83ba 100%
     );
+}
+
+/* 避開上方浮動標題 */
+.leaflet-top {
+  top: 82px;
 }
