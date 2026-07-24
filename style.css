@@ -1861,3 +1861,11 @@ body {
     margin-right: 10px;
   }
 }
+
+.fixed-polygon-tooltip {
+  pointer-events: none;
+
+  max-width: 260px;
+
+  white-space: normal;
+}
