@@ -79,7 +79,7 @@ body {
 .site-header h1 {
   margin: 0;
   font-family: "Noto Sans TC", serif;
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.7px;
   line-height: 1.35;
@@ -1869,3 +1869,157 @@ body {
 
   white-space: normal;
 }
+
+/* =========================================================
+   標題旁行政區檢索
+========================================================= */
+
+.header-left-section {
+  display: flex;
+  align-items: center;
+
+  min-width: 0;
+
+  gap: 22px;
+}
+
+
+.header-location-search {
+  display: flex;
+  align-items: flex-end;
+
+  gap: 8px;
+
+  min-width: 0;
+}
+
+
+.location-search-field {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  color: #74676a;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.location-search-field select {
+  height: 31px;
+
+  box-sizing: border-box;
+
+  padding: 4px 27px 4px 9px;
+
+  border:
+    1px solid
+    rgba(108, 42, 52, 0.2);
+
+  border-radius: 7px;
+
+  outline: none;
+
+  background:
+    rgba(255, 255, 255, 0.88);
+
+  color: #3f474b;
+
+  font-family: inherit;
+  font-size: 11px;
+
+  cursor: pointer;
+}
+
+
+#county-search-select {
+  width: 115px;
+}
+
+
+#town-search-select {
+  width: 145px;
+}
+
+
+.location-search-field select:hover {
+  border-color:
+    rgba(108, 42, 52, 0.42);
+}
+
+
+.location-search-field select:focus {
+  border-color: #a03641;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(160, 54, 65, 0.12);
+}
+
+
+.location-search-field select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+.location-search-reset {
+  height: 31px;
+
+  padding: 0 10px;
+
+  border:
+    1px solid
+    rgba(108, 42, 52, 0.2);
+
+  border-radius: 7px;
+
+  background:
+    rgba(108, 42, 52, 0.07);
+
+  color: #6c2a34;
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+.location-search-reset:hover {
+  background:
+    rgba(108, 42, 52, 0.14);
+}
+
+
+@media (max-width: 1050px) {
+  .header-left-section {
+    align-items: flex-start;
+    flex-direction: column;
+
+    gap: 7px;
+  }
+}
+
+
+@media (max-width: 650px) {
+  .header-location-search {
+    width: 100%;
+
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .location-search-field {
+    flex: 1 1 120px;
+  }
+
+  #county-search-select,
+  #town-search-select {
+    width: 100%;
+  }
+}
+

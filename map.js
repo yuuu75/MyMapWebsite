@@ -172,6 +172,31 @@ function getCountyName(properties = {}) {
   );
 }
 
+// 取得鄉鎮市區名稱
+function getTownName(
+  properties = {}
+) {
+  return (
+    properties.TOWNNAME ||
+    properties.TOWN_NAM ||
+    properties.TOWN ||
+    properties.townname ||
+    properties.town ||
+    properties.NAME_2 ||
+    ""
+  );
+}
+
+// 統一行政區名稱格式，避免空格或臺／台差異
+function normalizeLocationName(
+  value
+) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replaceAll("台", "臺");
+}
+
 // 將文字轉成安全 HTML，避免特殊字元破壞資訊視窗
 function escapeHtml(value) {
   return String(value ?? "")
@@ -1320,6 +1345,19 @@ const layerConfigs = {
     url: "data/urbanicity level.geojson",
     valueField: "Rank",
 
+     // 使用此圖層建立縣市及鄉鎮市區檢索
+  locationSearchSource: true,
+
+  visible: false,
+  opacity: 0.5,
+
+  layer: null,
+  selectedFeatureLayer: null,
+
+  paneName:
+    "overlay-pane-urbanicity",
+
+
     visible: false,
     opacity: 0.5,
     layer: null,
@@ -1782,6 +1820,660 @@ const layerConfigs = {
   }
 };
 
+/* =========================================================
+   縣市與鄉鎮市區檢索
+========================================================= */
+
+const locationSearchState = {
+  sourceLayerKey: null,
+
+  // Map<縣市名稱, { bounds, towns }>
+  counties: new Map(),
+
+  // 全臺行政區範圍
+  allBounds:
+    L.latLngBounds([])
+};
+
+
+const countySearchSelect =
+  document.getElementById(
+    "county-search-select"
+  );
+
+const townSearchSelect =
+  document.getElementById(
+    "town-search-select"
+  );
+
+const locationSearchReset =
+  document.getElementById(
+    "location-search-reset"
+  );
+
+
+// 更新下拉選單內容
+function replaceSearchOptions(
+  selectElement,
+  placeholder,
+  values = []
+) {
+  if (!selectElement) {
+    return;
+  }
+
+  selectElement.replaceChildren();
+
+  selectElement.add(
+    new Option(
+      placeholder,
+      ""
+    )
+  );
+
+  values.forEach(value => {
+    selectElement.add(
+      new Option(
+        value,
+        value
+      )
+    );
+  });
+}
+
+
+// 中文行政區排序
+function sortLocationNames(
+  names
+) {
+  return [...names].sort(
+    (first, second) =>
+      first.localeCompare(
+        second,
+        "zh-TW"
+      )
+  );
+}
+
+
+// 取得地圖上方需要保留的空間
+function getLocationSearchTopPadding() {
+  const mapContainer =
+    map.getContainer();
+
+  const mapRectangle =
+    mapContainer
+      .getBoundingClientRect();
+
+  const headerElement =
+    document.querySelector(
+      ".site-header"
+    );
+
+  if (!headerElement) {
+    return 40;
+  }
+
+  const headerRectangle =
+    headerElement
+      .getBoundingClientRect();
+
+  return Math.max(
+    40,
+    headerRectangle.bottom -
+      mapRectangle.top +
+      20
+  );
+}
+
+
+// 縮放到指定行政區
+function zoomToLocationBounds(
+  bounds,
+  maxZoom
+) {
+  if (
+    !bounds ||
+    !bounds.isValid()
+  ) {
+    return;
+  }
+
+  map.fitBounds(
+    bounds,
+    {
+      paddingTopLeft: [
+        35,
+        getLocationSearchTopPadding()
+      ],
+
+      paddingBottomRight:
+        [35, 35],
+
+      maxZoom,
+
+      animate: true
+    }
+  );
+}
+
+
+// 使用指定面圖層建立行政區索引
+function buildLocationSearchIndex(
+  key
+) {
+  const config =
+    layerConfigs[key];
+
+  if (
+    !config ||
+    !config.layer ||
+    !config.locationSearchSource
+  ) {
+    return;
+  }
+
+  locationSearchState
+    .sourceLayerKey =
+    key;
+
+  locationSearchState
+    .counties
+    .clear();
+
+  locationSearchState
+    .allBounds =
+    L.latLngBounds([]);
+
+  config.layer.eachLayer(
+    featureLayer => {
+      const properties =
+        featureLayer.feature
+          ?.properties || {};
+
+      const countyName =
+        String(
+          getCountyName(
+            properties
+          ) || ""
+        ).trim();
+
+      const townName =
+        String(
+          getTownName(
+            properties
+          ) || ""
+        ).trim();
+
+      if (
+        !countyName ||
+        !townName ||
+        countyName ===
+          "未提供縣市名稱"
+      ) {
+        return;
+      }
+
+      if (
+        typeof featureLayer.getBounds !==
+        "function"
+      ) {
+        return;
+      }
+
+      const featureBounds =
+        featureLayer.getBounds();
+
+      if (
+        !featureBounds.isValid()
+      ) {
+        return;
+      }
+
+      // 建立縣市資料
+      if (
+        !locationSearchState
+          .counties
+          .has(countyName)
+      ) {
+        locationSearchState
+          .counties
+          .set(
+            countyName,
+            {
+              bounds:
+                L.latLngBounds([]),
+
+              towns:
+                new Map()
+            }
+          );
+      }
+
+      const countyEntry =
+        locationSearchState
+          .counties
+          .get(countyName);
+
+      countyEntry.bounds.extend(
+        featureBounds
+      );
+
+      locationSearchState
+        .allBounds
+        .extend(featureBounds);
+
+      // 建立鄉鎮市區資料
+      if (
+        !countyEntry.towns.has(
+          townName
+        )
+      ) {
+        countyEntry.towns.set(
+          townName,
+          {
+            bounds:
+              L.latLngBounds([]),
+
+            layers: []
+          }
+        );
+      }
+
+      const townEntry =
+        countyEntry.towns.get(
+          townName
+        );
+
+      townEntry.bounds.extend(
+        featureBounds
+      );
+
+      townEntry.layers.push(
+        featureLayer
+      );
+    }
+  );
+
+  const countyNames =
+    sortLocationNames(
+      locationSearchState
+        .counties
+        .keys()
+    );
+
+  replaceSearchOptions(
+    countySearchSelect,
+    "選擇縣市",
+    countyNames
+  );
+
+  replaceSearchOptions(
+    townSearchSelect,
+    "請先選擇縣市"
+  );
+
+  if (countySearchSelect) {
+    countySearchSelect.disabled =
+      countyNames.length === 0;
+  }
+
+  if (townSearchSelect) {
+    townSearchSelect.disabled =
+      true;
+  }
+}
+
+/* =========================================================
+   尋找檢索後要顯示資訊的面量圖層
+========================================================= */
+
+function getLocationSearchTargetLayerKey() {
+  /*
+    優先使用最近開啟或目前排名中的面量圖層
+  */
+  const activeConfig =
+    layerConfigs[
+      activeRankingLayerKey
+    ];
+
+  if (
+    activeConfig &&
+    activeConfig.type === "polygon" &&
+    activeConfig.visible &&
+    activeConfig.layer
+  ) {
+    return activeRankingLayerKey;
+  }
+
+  /*
+    再依照圖層順序尋找目前開啟的面量圖層。
+    overlayOrder 越前面的圖層越靠上。
+  */
+  const visiblePolygonKey =
+    overlayOrder.find(key => {
+      const config =
+        layerConfigs[key];
+
+      return (
+        config &&
+        config.type === "polygon" &&
+        config.visible &&
+        config.layer
+      );
+    });
+
+  if (visiblePolygonKey) {
+    return visiblePolygonKey;
+  }
+
+  /*
+    沒有面量圖層開啟時，
+    使用行政區檢索來源圖層。
+  */
+  return (
+    locationSearchState
+      .sourceLayerKey ||
+    null
+  );
+}
+
+// 選擇縣市
+countySearchSelect
+  ?.addEventListener(
+    "change",
+    function () {
+      const countyName =
+        this.value;
+
+      replaceSearchOptions(
+        townSearchSelect,
+        countyName
+          ? "選擇鄉鎮市區"
+          : "請先選擇縣市"
+      );
+
+      if (!countyName) {
+        townSearchSelect.disabled =
+          true;
+
+        return;
+      }
+
+      const countyEntry =
+        locationSearchState
+          .counties
+          .get(countyName);
+
+      if (!countyEntry) {
+        townSearchSelect.disabled =
+          true;
+
+        return;
+      }
+
+      const townNames =
+        sortLocationNames(
+          countyEntry
+            .towns
+            .keys()
+        );
+
+      replaceSearchOptions(
+        townSearchSelect,
+        "選擇鄉鎮市區",
+        townNames
+      );
+
+      townSearchSelect.disabled =
+        townNames.length === 0;
+
+      // 選取縣市後先縮放至縣市範圍
+      zoomToLocationBounds(
+        countyEntry.bounds,
+        10
+      );
+    }
+  );
+
+
+// 選擇鄉鎮市區
+townSearchSelect
+  ?.addEventListener(
+    "change",
+    function () {
+      const countyName =
+        countySearchSelect
+          ?.value;
+
+      const townName =
+        this.value;
+
+      if (
+        !countyName ||
+        !townName
+      ) {
+        return;
+      }
+
+      const townEntry =
+        locationSearchState
+          .counties
+          .get(countyName)
+          ?.towns
+          .get(townName);
+
+      if (!townEntry) {
+        return;
+      }
+
+      // 縮放並套用與地圖點擊相同的效果
+      zoomToAndSelectTown(
+        countyName,
+        townName,
+        townEntry.bounds
+      );
+    }
+  );
+
+
+// 回到全臺範圍
+locationSearchReset
+  ?.addEventListener(
+    "click",
+    function () {
+      if (countySearchSelect) {
+        countySearchSelect.value =
+          "";
+      }
+
+      replaceSearchOptions(
+        townSearchSelect,
+        "請先選擇縣市"
+      );
+
+      if (townSearchSelect) {
+        townSearchSelect.disabled =
+          true;
+      }
+
+      zoomToLocationBounds(
+        locationSearchState
+          .allBounds,
+        8
+      );
+    }
+  );
+
+  function findPolygonFeatureByLocation(
+  config,
+  countyName,
+  townName
+) {
+  if (
+    !config ||
+    !config.layer
+  ) {
+    return null;
+  }
+
+  const targetCounty =
+    normalizeLocationName(
+      countyName
+    );
+
+  const targetTown =
+    normalizeLocationName(
+      townName
+    );
+
+  let matchedLayer =
+    null;
+
+  config.layer.eachLayer(
+    featureLayer => {
+      if (matchedLayer) {
+        return;
+      }
+
+      const properties =
+        featureLayer.feature
+          ?.properties || {};
+
+      const featureCounty =
+        normalizeLocationName(
+          getCountyName(
+            properties
+          )
+        );
+
+      const featureTown =
+        normalizeLocationName(
+          getTownName(
+            properties
+          )
+        );
+
+      if (
+        featureCounty ===
+          targetCounty &&
+        featureTown ===
+          targetTown
+      ) {
+        matchedLayer =
+          featureLayer;
+      }
+    }
+  );
+
+  return matchedLayer;
+}
+
+/* =========================================================
+   縮放並套用行政區點擊效果
+========================================================= */
+
+function zoomToAndSelectTown(
+  countyName,
+  townName,
+  bounds
+) {
+  if (
+    !bounds ||
+    !bounds.isValid()
+  ) {
+    return;
+  }
+
+  let selectionCompleted =
+    false;
+
+  function selectTownAfterMove() {
+    // 避免 moveend 和備援計時器重複執行
+    if (selectionCompleted) {
+      return;
+    }
+
+    selectionCompleted =
+      true;
+
+    const targetLayerKey =
+      getLocationSearchTargetLayerKey();
+
+    if (!targetLayerKey) {
+      return;
+    }
+
+    const targetConfig =
+      layerConfigs[
+        targetLayerKey
+      ];
+
+    if (
+      !targetConfig ||
+      !targetConfig.layer
+    ) {
+      return;
+    }
+
+    /*
+      沒有面量圖層開啟時，
+      將行政區檢索來源圖層開啟，
+      這樣選取框線與 Popup 才能顯示。
+    */
+    if (!targetConfig.visible) {
+      setLayerVisibility(
+        targetLayerKey,
+        true
+      );
+    }
+
+    const targetFeatureLayer =
+      findPolygonFeatureByLocation(
+        targetConfig,
+        countyName,
+        townName
+      );
+
+    if (!targetFeatureLayer) {
+      console.warn(
+        "找不到對應行政區：",
+        countyName,
+        townName,
+        targetConfig.name
+      );
+
+      return;
+    }
+
+    selectPolygonFeature(
+      targetConfig,
+      targetFeatureLayer,
+      true
+    );
+  }
+
+  // 地圖完成移動後再開啟 Popup
+  map.once(
+    "moveend",
+    selectTownAfterMove
+  );
+
+  zoomToLocationBounds(
+    bounds,
+    13
+  );
+
+  /*
+    當目前地圖位置和行政區範圍非常接近時，
+    Leaflet 有時不會觸發 moveend，
+    因此加入備援。
+  */
+  window.setTimeout(
+    selectTownAfterMove,
+    600
+  );
+}
 
 /* =========================================================
    5. 圖層順序
@@ -2565,6 +3257,79 @@ function getPolygonTooltipPosition(
   return null;
 }
 
+/* =========================================================
+   共用行政區選取效果
+========================================================= */
+
+function selectPolygonFeature(
+  config,
+  layer,
+  openPopup = true
+) {
+  if (
+    !config ||
+    !config.layer ||
+    !layer
+  ) {
+    return;
+  }
+
+  // 關閉同一圖層內所有 Tooltip
+  config.layer.eachLayer(
+    otherLayer => {
+      if (
+        typeof otherLayer.closeTooltip ===
+        "function"
+      ) {
+        otherLayer.closeTooltip();
+      }
+    }
+  );
+
+  // 恢復前一個被選取的行政區
+  if (
+    config.selectedFeatureLayer &&
+    config.selectedFeatureLayer !==
+      layer
+  ) {
+    config.layer.resetStyle(
+      config.selectedFeatureLayer
+    );
+
+    config.selectedFeatureLayer
+      .setStyle({
+        fillOpacity:
+          config.opacity
+      });
+  }
+
+  // 儲存目前被選取的行政區
+  config.selectedFeatureLayer =
+    layer;
+
+  // 套用和地圖點擊相同的選取樣式
+  layer.setStyle({
+    color: "#111111",
+    weight: 3,
+
+    fillOpacity: Math.min(
+      config.opacity + 0.2,
+      1
+    )
+  });
+
+  layer.bringToFront();
+
+  // 檢索時需要主動開啟 Popup
+  if (
+    openPopup &&
+    typeof layer.openPopup ===
+      "function"
+  ) {
+    layer.openPopup();
+  }
+}
+
 // 建立面圖層的互動事件
 function bindPolygonFeatureEvents(
   config,
@@ -2688,43 +3453,16 @@ function bindPolygonFeatureEvents(
   layer.on(
     "click",
     function () {
-      // 關閉同圖層所有 Tooltip
-      config.layer.eachLayer(
-        otherLayer => {
-          otherLayer.closeTooltip();
-        }
+      /*
+        真正用滑鼠點擊時，
+        Leaflet 會自行開啟已綁定的 Popup，
+        因此這裡只套用選取樣式。
+      */
+      selectPolygonFeature(
+        config,
+        layer,
+        false
       );
-
-      // 恢復同圖層前一個選取區域
-      if (
-        config.selectedFeatureLayer &&
-        config.selectedFeatureLayer !==
-          layer
-      ) {
-        config.layer.resetStyle(
-          config.selectedFeatureLayer
-        );
-
-        config.selectedFeatureLayer
-          .setStyle({
-            fillOpacity:
-              config.opacity
-          });
-      }
-
-      config.selectedFeatureLayer =
-        layer;
-
-      layer.setStyle({
-        color: "#111111",
-        weight: 3,
-        fillOpacity: Math.min(
-          config.opacity + 0.2,
-          1
-        )
-      });
-
-      layer.bringToFront();
     }
   );
 
@@ -2848,6 +3586,16 @@ async function loadPolygonLayer(
         }
       }
     );
+
+    // 此圖層若被指定為行政區檢索來源，
+    // 建立縣市與鄉鎮市區下拉選單
+    if (
+      config.locationSearchSource
+    ) {
+      buildLocationSearchIndex(
+        key
+      );
+    }
 
     // 根據設定決定是否顯示
     if (config.visible) {
