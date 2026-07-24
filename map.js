@@ -289,6 +289,987 @@ function getClassColor(value, classes) {
     : "#cccccc";
 }
 
+/* =========================================================
+   面量圖層共用排名設定
+========================================================= */
+
+// 取得面量圖層的排名設定
+function getPolygonRankingSettings(
+  config
+) {
+  // 只有 polygon 類型支援排名
+  if (
+    !config ||
+    config.type !== "polygon"
+  ) {
+    return null;
+  }
+
+  // 個別圖層可用 ranking: false 關閉排名
+  if (
+    config.ranking === false ||
+    config.ranking?.enabled === false
+  ) {
+    return null;
+  }
+
+  const customRanking =
+    config.ranking || {};
+
+  return {
+    // 預設使用圖層的 valueField 排名
+    field:
+      customRanking.field ||
+      config.valueField,
+
+    // 預設顯示前十名
+    limit:
+      Number.isFinite(
+        customRanking.limit
+      )
+        ? customRanking.limit
+        : 10,
+
+    // 預設由高到低
+    order:
+      customRanking.order === "asc"
+        ? "asc"
+        : "desc",
+
+    // 未設定標題時自動使用圖層名稱
+    title:
+      customRanking.title ||
+      `${config.name}前十名`,
+
+    // 未設定格式時，使用一般數值格式
+    formatValue:
+      typeof customRanking
+        .formatValue === "function"
+        ? customRanking.formatValue
+        : value =>
+            formatNumber(value)
+  };
+}
+
+/* =========================================================
+   可拖曳、可收合的面量圖層排名視窗
+========================================================= */
+
+// 最近開啟或目前顯示排名的面量圖層
+let activeRankingLayerKey =
+  null;
+
+// 直接把排名視窗放進地圖容器
+const rankingPanel =
+  document.createElement(
+    "section"
+  );
+
+rankingPanel.id =
+  "ranking-panel";
+
+rankingPanel.className =
+  "ranking-panel";
+
+rankingPanel.hidden =
+  true;
+
+rankingPanel.innerHTML = `
+  <div
+    id="ranking-panel-drag-handle"
+    class="ranking-panel-header"
+  >
+    <div class="ranking-panel-title-group">
+      <span
+        id="ranking-panel-label"
+        class="ranking-panel-label"
+      >
+        TOP 10
+      </span>
+
+      <strong
+        id="ranking-panel-title"
+        class="ranking-panel-title"
+      >
+        面量圖層排名
+      </strong>
+    </div>
+
+    <button
+      type="button"
+      id="ranking-panel-toggle"
+      class="ranking-panel-toggle"
+      title="收合排名視窗"
+      aria-label="收合排名視窗"
+      aria-expanded="true"
+    >
+      −
+    </button>
+  </div>
+
+  <div
+    id="ranking-panel-body"
+    class="ranking-panel-body"
+  ></div>
+`;
+
+// 放進 Leaflet 地圖容器
+map
+  .getContainer()
+  .appendChild(
+    rankingPanel
+  );
+
+// 操作排名視窗時不要拖動或縮放地圖
+L.DomEvent
+  .disableClickPropagation(
+    rankingPanel
+  );
+
+L.DomEvent
+  .disableScrollPropagation(
+    rankingPanel
+  );
+
+/* =========================================================
+   排名視窗拖曳控制
+========================================================= */
+
+const rankingPanelDragHandle =
+  document.getElementById(
+    "ranking-panel-drag-handle"
+  );
+
+const rankingPanelToggle =
+  document.getElementById(
+    "ranking-panel-toggle"
+  );
+
+// 拖曳時，上方標題額外保留的距離
+const rankingPanelHeaderGap =
+  10;
+
+// 找出上方固定標題列
+function getMapHeaderElement() {
+  return document.querySelector(
+    [
+      ".site-header",
+      ".map-header",
+      ".page-header",
+      "header"
+    ].join(",")
+  );
+}
+
+// 計算排名視窗可以移動的範圍
+function getRankingPanelLimits() {
+  const mapContainer =
+    map.getContainer();
+
+  const mapRectangle =
+    mapContainer
+      .getBoundingClientRect();
+
+  const headerElement =
+    getMapHeaderElement();
+
+  let safeTop =
+    10;
+
+  if (headerElement) {
+    const headerRectangle =
+      headerElement
+        .getBoundingClientRect();
+
+    // 將標題底部的座標轉換成地圖內部座標
+    safeTop =
+      headerRectangle.bottom -
+      mapRectangle.top +
+      rankingPanelHeaderGap;
+  } else {
+    // 找不到標題元素時，
+    // 使用原本 Popup 的安全距離
+    safeTop =
+      115;
+  }
+
+  const panelWidth =
+    rankingPanel.offsetWidth ||
+    285;
+
+  const panelHeight =
+    rankingPanel.offsetHeight ||
+    55;
+
+  return {
+    minLeft: 10,
+
+    maxLeft: Math.max(
+      10,
+      mapRectangle.width -
+        panelWidth -
+        10
+    ),
+
+    minTop: Math.max(
+      10,
+      safeTop
+    ),
+
+    maxTop: Math.max(
+      safeTop,
+      mapRectangle.height -
+        panelHeight -
+        10
+    )
+  };
+}
+
+// 將視窗移動到合法範圍內
+function setRankingPanelPosition(
+  left,
+  top
+) {
+  const limits =
+    getRankingPanelLimits();
+
+  const safeLeft =
+    Math.min(
+      Math.max(
+        left,
+        limits.minLeft
+      ),
+      limits.maxLeft
+    );
+
+  const safeTop =
+    Math.min(
+      Math.max(
+        top,
+        limits.minTop
+      ),
+      limits.maxTop
+    );
+
+  rankingPanel.style.left =
+    `${safeLeft}px`;
+
+  rankingPanel.style.top =
+    `${safeTop}px`;
+
+  rankingPanel.style.right =
+    "auto";
+
+  rankingPanel.style.bottom =
+    "auto";
+}
+
+// 確保目前位置仍在合法範圍內
+function clampRankingPanelPosition() {
+  if (
+    rankingPanel.hidden
+  ) {
+    return;
+  }
+
+  const currentLeft =
+    parseFloat(
+      rankingPanel.style.left
+    );
+
+  const currentTop =
+    parseFloat(
+      rankingPanel.style.top
+    );
+
+  const limits =
+    getRankingPanelLimits();
+
+  setRankingPanelPosition(
+    Number.isFinite(
+      currentLeft
+    )
+      ? currentLeft
+      : limits.minLeft,
+
+    Number.isFinite(
+      currentTop
+    )
+      ? currentTop
+      : limits.maxTop
+  );
+}
+
+// 預設排列在圖層管理面板右側
+function placeRankingPanelInitially() {
+  // 使用者已經移動過排名視窗，
+  // 之後只檢查是否仍在合法範圍
+  if (
+    rankingPanel.dataset
+      .positioned === "true"
+  ) {
+    clampRankingPanelPosition();
+    return;
+  }
+
+  const mapContainer =
+    map.getContainer();
+
+  const mapRectangle =
+    mapContainer
+      .getBoundingClientRect();
+
+  // 優先取得已開啟的圖層管理面板
+  const layerPanel =
+    document.querySelector(
+      "#layer-panel-content.is-open"
+    ) ||
+    document.getElementById(
+      "layer-panel-content"
+    ) ||
+    document.querySelector(
+      ".custom-layer-control"
+    );
+
+  const limits =
+    getRankingPanelLimits();
+
+  // 兩個視窗之間的距離
+  const panelGap =
+    12;
+
+  let rankingLeft =
+    limits.minLeft;
+
+  let rankingTop =
+    limits.minTop;
+
+  if (layerPanel) {
+    const layerPanelRectangle =
+      layerPanel
+        .getBoundingClientRect();
+
+    const rankingPanelWidth =
+      rankingPanel.offsetWidth ||
+      285;
+
+    // 排名視窗放在圖層管理視窗右側
+    rankingLeft =
+      layerPanelRectangle.right -
+      mapRectangle.left +
+      panelGap;
+
+    // 兩個視窗頂端對齊
+    rankingTop =
+      layerPanelRectangle.top -
+      mapRectangle.top;
+  }
+
+  setRankingPanelPosition(
+    rankingLeft,
+    rankingTop
+  );
+
+  rankingPanel.dataset
+    .positioned =
+    "true";
+}
+
+let rankingPanelDragging =
+  false;
+
+let rankingPanelPointerStartX =
+  0;
+
+let rankingPanelPointerStartY =
+  0;
+
+let rankingPanelStartLeft =
+  0;
+
+let rankingPanelStartTop =
+  0;
+
+rankingPanelDragHandle
+  .addEventListener(
+    "pointerdown",
+    event => {
+      // 點到收合按鈕時不要啟動拖曳
+      if (
+        event.target.closest(
+          ".ranking-panel-toggle"
+        )
+      ) {
+        return;
+      }
+
+      // 滑鼠只允許左鍵拖曳
+      if (
+        event.pointerType ===
+          "mouse" &&
+        event.button !== 0
+      ) {
+        return;
+      }
+
+      rankingPanelDragging =
+        true;
+
+      rankingPanelPointerStartX =
+        event.clientX;
+
+      rankingPanelPointerStartY =
+        event.clientY;
+
+      rankingPanelStartLeft =
+        parseFloat(
+          rankingPanel.style.left
+        ) || 0;
+
+      rankingPanelStartTop =
+        parseFloat(
+          rankingPanel.style.top
+        ) || 0;
+
+      rankingPanel.classList.add(
+        "is-dragging"
+      );
+
+      rankingPanelDragHandle
+        .setPointerCapture(
+          event.pointerId
+        );
+
+      event.preventDefault();
+    }
+  );
+
+rankingPanelDragHandle
+  .addEventListener(
+    "pointermove",
+    event => {
+      if (
+        !rankingPanelDragging
+      ) {
+        return;
+      }
+
+      const moveX =
+        event.clientX -
+        rankingPanelPointerStartX;
+
+      const moveY =
+        event.clientY -
+        rankingPanelPointerStartY;
+
+      setRankingPanelPosition(
+        rankingPanelStartLeft +
+          moveX,
+
+        rankingPanelStartTop +
+          moveY
+      );
+    }
+  );
+
+function stopRankingPanelDragging(
+  event
+) {
+  if (
+    !rankingPanelDragging
+  ) {
+    return;
+  }
+
+  rankingPanelDragging =
+    false;
+
+  rankingPanel.classList.remove(
+    "is-dragging"
+  );
+
+  if (
+    rankingPanelDragHandle
+      .hasPointerCapture(
+        event.pointerId
+      )
+  ) {
+    rankingPanelDragHandle
+      .releasePointerCapture(
+        event.pointerId
+      );
+  }
+}
+
+rankingPanelDragHandle
+  .addEventListener(
+    "pointerup",
+    stopRankingPanelDragging
+  );
+
+rankingPanelDragHandle
+  .addEventListener(
+    "pointercancel",
+    stopRankingPanelDragging
+  );
+
+  /* =========================================================
+   排名視窗收合控制
+========================================================= */
+
+rankingPanelToggle
+  .addEventListener(
+    "click",
+    event => {
+      event.stopPropagation();
+
+      const isCollapsed =
+        rankingPanel
+          .classList
+          .toggle(
+            "is-collapsed"
+          );
+
+      rankingPanelToggle
+        .textContent =
+        isCollapsed
+          ? "+"
+          : "−";
+
+      rankingPanelToggle
+        .setAttribute(
+          "aria-expanded",
+          String(
+            !isCollapsed
+          )
+        );
+
+      rankingPanelToggle
+        .setAttribute(
+          "title",
+          isCollapsed
+            ? "展開排名視窗"
+            : "收合排名視窗"
+        );
+
+      rankingPanelToggle
+        .setAttribute(
+          "aria-label",
+          isCollapsed
+            ? "展開排名視窗"
+            : "收合排名視窗"
+        );
+
+      // 收合後高度會改變，
+      // 重新限制在地圖範圍中
+      window.requestAnimationFrame(
+        clampRankingPanelPosition
+      );
+    }
+  );
+
+// 瀏覽器尺寸改變時重新限制位置
+window.addEventListener(
+  "resize",
+  clampRankingPanelPosition
+);
+
+// Leaflet 地圖尺寸改變時重新限制位置
+map.on(
+  "resize",
+  clampRankingPanelPosition
+);
+
+/* =========================================================
+   共用排名資料與地圖連動
+========================================================= */
+
+// 找出目前應顯示排名的圖層
+function getCurrentRankingLayerKey() {
+  const activeConfig =
+    layerConfigs[
+      activeRankingLayerKey
+    ];
+
+  // 優先顯示最近開啟的面量圖層
+  if (
+    activeConfig &&
+    activeConfig.visible &&
+    activeConfig.layer &&
+    getPolygonRankingSettings(
+      activeConfig
+    )
+  ) {
+    return activeRankingLayerKey;
+  }
+
+  // 最近開啟的圖層已關閉時，
+  // 尋找其他目前開啟的面量圖層
+  return (
+    overlayOrder.find(key => {
+      const config =
+        layerConfigs[key];
+
+      return (
+        config &&
+        config.visible &&
+        config.layer &&
+        getPolygonRankingSettings(
+          config
+        )
+      );
+    }) || null
+  );
+}
+
+
+// 點擊排名項目後移動到行政區
+function focusRankingFeature(
+  config,
+  featureLayer
+) {
+  if (
+    !config ||
+    !featureLayer
+  ) {
+    return;
+  }
+
+  const bounds =
+    typeof featureLayer.getBounds ===
+      "function"
+      ? featureLayer.getBounds()
+      : null;
+
+  let featureOpened =
+    false;
+
+  function openFeature() {
+    // 避免 moveend 與備援計時器重複執行
+    if (featureOpened) {
+      return;
+    }
+
+    featureOpened =
+      true;
+
+    // 觸發原本行政區點擊效果
+    featureLayer.fire(
+      "click"
+    );
+
+    // 開啟原本綁定的 Popup
+    featureLayer.openPopup();
+  }
+
+  if (
+    bounds &&
+    bounds.isValid()
+  ) {
+    // 地圖移動完成後開啟資訊視窗
+    map.once(
+      "moveend",
+      openFeature
+    );
+
+    map.fitBounds(
+      bounds,
+      {
+        // 避開上方固定標題列
+        paddingTopLeft:
+          [40, 125],
+
+        paddingBottomRight:
+          [40, 40],
+
+        // 避免放得過近
+        maxZoom: 13,
+
+        animate: true
+      }
+    );
+
+    // 當地圖位置變化太小，
+    // moveend 沒有觸發時的備援
+    window.setTimeout(
+      openFeature,
+      500
+    );
+
+    return;
+  }
+
+  openFeature();
+}
+
+
+// 建立指定圖層的排名資料
+function getPolygonRankingRows(
+  config
+) {
+  const rankingSettings =
+    getPolygonRankingSettings(
+      config
+    );
+
+  if (
+    !rankingSettings ||
+    !config.layer
+  ) {
+    return [];
+  }
+
+  const rankingRows =
+    [];
+
+  config.layer.eachLayer(
+    featureLayer => {
+      const properties =
+        featureLayer.feature
+          ?.properties || {};
+
+      const value =
+        toFiniteNumber(
+          properties[
+            rankingSettings.field
+          ]
+        );
+
+      // 排除空值和非數值資料
+      if (value === null) {
+        return;
+      }
+
+      rankingRows.push({
+        featureLayer,
+
+        areaName:
+          getAreaName(
+            properties
+          ),
+
+        value
+      });
+    }
+  );
+
+  rankingRows.sort(
+    (first, second) => {
+      if (
+        rankingSettings.order ===
+        "asc"
+      ) {
+        return (
+          first.value -
+          second.value
+        );
+      }
+
+      return (
+        second.value -
+        first.value
+      );
+    }
+  );
+
+  return rankingRows.slice(
+    0,
+    rankingSettings.limit
+  );
+}
+
+
+// 產生排名視窗內容
+function renderRankingPanel(key) {
+  const panel =
+    document.getElementById(
+      "ranking-panel"
+    );
+
+  const panelLabel =
+    document.getElementById(
+      "ranking-panel-label"
+    );
+
+  const panelTitle =
+    document.getElementById(
+      "ranking-panel-title"
+    );
+
+  const panelBody =
+    document.getElementById(
+      "ranking-panel-body"
+    );
+
+  const config =
+    layerConfigs[key];
+
+  const rankingSettings =
+    getPolygonRankingSettings(
+      config
+    );
+
+  if (
+    !panel ||
+    !panelLabel ||
+    !panelTitle ||
+    !panelBody ||
+    !config ||
+    !config.layer ||
+    !config.visible ||
+    !rankingSettings
+  ) {
+    return;
+  }
+
+  const rankingRows =
+    getPolygonRankingRows(
+      config
+    );
+
+  panel.hidden =
+    false;
+
+  panelLabel.textContent =
+    `TOP ${rankingSettings.limit}`;
+
+  panelTitle.textContent =
+    rankingSettings.title;
+
+  if (
+    rankingRows.length === 0
+  ) {
+    panelBody.innerHTML = `
+      <div class="ranking-empty-message">
+        沒有可供排名的資料
+      </div>
+    `;
+
+    window.requestAnimationFrame(
+      placeRankingPanelInitially
+    );
+
+    return;
+  }
+
+  const rankingItemsHtml =
+    rankingRows
+      .map(
+        (item, index) => {
+          const formattedValue =
+            rankingSettings
+              .formatValue(
+                item.value
+              );
+
+          return `
+            <li class="ranking-list-item">
+              <button
+                type="button"
+                class="ranking-item-button"
+                data-ranking-index="${index}"
+                title="前往 ${escapeHtml(
+                  item.areaName
+                )}"
+              >
+                <span class="ranking-number">
+                  ${index + 1}
+                </span>
+
+                <span class="ranking-area-name">
+                  ${escapeHtml(
+                    item.areaName
+                  )}
+                </span>
+
+                <strong class="ranking-value">
+                  ${escapeHtml(
+                    formattedValue
+                  )}
+                </strong>
+              </button>
+            </li>
+          `;
+        }
+      )
+      .join("");
+
+  panelBody.innerHTML = `
+    <ol class="ranking-list">
+      ${rankingItemsHtml}
+    </ol>
+  `;
+
+  panelBody
+    .querySelectorAll(
+      ".ranking-item-button"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        function () {
+          const rankingIndex =
+            Number(
+              this.dataset
+                .rankingIndex
+            );
+
+          const rankingItem =
+            rankingRows[
+              rankingIndex
+            ];
+
+          if (!rankingItem) {
+            return;
+          }
+
+          focusRankingFeature(
+            config,
+            rankingItem
+              .featureLayer
+          );
+        }
+      );
+    });
+
+  window.requestAnimationFrame(
+    placeRankingPanelInitially
+  );
+}
+
+
+// 更新排名視窗
+function refreshRankingPanel() {
+  const panel =
+    document.getElementById(
+      "ranking-panel"
+    );
+
+  if (!panel) {
+    return;
+  }
+
+  const rankingLayerKey =
+    getCurrentRankingLayerKey();
+
+  // 沒有可顯示排名的面量圖層
+  if (!rankingLayerKey) {
+    activeRankingLayerKey =
+      null;
+
+    panel.hidden =
+      true;
+
+    return;
+  }
+
+  activeRankingLayerKey =
+    rankingLayerKey;
+
+  renderRankingPanel(
+    rankingLayerKey
+  );
+}
 
 /* =========================================================
    4. 圖層設定
@@ -348,6 +1329,17 @@ const layerConfigs = {
     symbolHtml:
       '<span class="layer-symbol urbanicity-symbol"></span>',
 
+    ranking: {
+      title: "城鄉階層排名前十名",
+
+      // Rank 數字越小，排名越前面
+      order: "asc",
+
+      formatValue(value) {
+        return `第 ${formatNumber(value)} 名`;
+      }
+    },
+      
     classes: [
       {
         min: 1,
@@ -444,6 +1436,14 @@ const layerConfigs = {
     symbolHtml:
       '<span class="layer-symbol college-education-symbol"></span>',
 
+    ranking: {
+      title: "大專以上人口比例前十名",
+
+      formatValue(value) {
+        return formatPercent(value);
+      }
+    },
+      
     classes: [
       {
         min: 0.22,
@@ -542,6 +1542,14 @@ const layerConfigs = {
     // 圖層控制面板中的色彩符號
     symbolHtml:
       '<span class="layer-symbol agricultural-population-symbol"></span>',
+
+    ranking: {
+      title: "農戶人口數前十名",
+
+      formatValue(value) {
+        return `${formatNumber(value)} 人`;
+      }
+    },
 
     // 依照你的 QGIS 圖例設定分級
     classes: [
@@ -651,6 +1659,14 @@ const layerConfigs = {
     // 圖層控制面板中的單色色塊
     symbolHtml:
       '<span class="layer-symbol income-median-symbol"></span>',
+
+    ranking: {
+      title: "綜合所得總額中位數前十名",
+
+      formatValue(value) {
+        return `${formatNumber(value)} 千元`;
+      }
+    },
 
     // 依照 QGIS 圖例設定的五級分色
     classes: [
@@ -847,9 +1863,10 @@ function applyLayerOrder() {
     }
   });
 
-  // 同步更新面板順序及圖例順序
+  // 同步更新圖層面板、圖例及排名
   renderOverlayLayerList();
   renderVisibleLegends();
+  refreshRankingPanel();
 }
 
 
@@ -1046,6 +2063,8 @@ layerPanelClose.addEventListener(
 
 // 網頁載入時預設開啟圖層控制面板
 openLayerPanel();
+// 接著載入圖層
+loadMentalHealthLayer();
 
 // 圖層控制面板不會因點擊地圖而自動收起。
 // 使用者需按右上角的 × 按鈕關閉面板。
@@ -1269,9 +2288,30 @@ function setLayerVisibility(
 
   config.visible = visible;
 
+  // 開啟面量圖層時，
+  // 將排名切換至最新開啟的圖層
+  if (
+    config.type === "polygon" &&
+    getPolygonRankingSettings(
+      config
+    )
+  ) {
+    if (visible) {
+      activeRankingLayerKey =
+        key;
+    } else if (
+      activeRankingLayerKey ===
+      key
+    ) {
+      activeRankingLayerKey =
+        null;
+    }
+  }
+
   // 圖層尚未載入時只記錄狀態
   if (!config.layer) {
     renderVisibleLegends();
+    refreshRankingPanel();
     return;
   }
 

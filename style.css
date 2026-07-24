@@ -1439,3 +1439,425 @@ body {
   pointer-events: none;
   user-select: none;
 }
+
+/* =========================================================
+   面量圖層排名視窗
+========================================================= */
+
+.ranking-panel {
+  width: 285px;
+  max-width:
+    calc(100vw - 30px);
+
+  max-height:
+    min(55vh, 430px);
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  box-sizing: border-box;
+  padding: 0;
+
+  background:
+    rgba(255, 255, 255, 0.6);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.82);
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 5px 18px
+    rgba(24, 35, 42, 0.2);
+
+  backdrop-filter:
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
+
+  color: #30363a;
+
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    rgba(108, 42, 52, 0.35)
+    transparent;
+}
+
+
+.ranking-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ranking-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ranking-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+
+  background:
+    rgba(108, 42, 52, 0.3);
+}
+
+
+.ranking-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
+  padding:
+    11px 12px 10px;
+
+  background:
+    rgba(255, 255, 255, 0.7);
+
+  border-bottom:
+    1px solid
+    rgba(70, 78, 82, 0.12);
+}
+
+.ranking-panel-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ranking-panel-header strong {
+  color: #4c3136;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ranking-panel-label {
+  color: #a03641;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 1px;
+}
+
+
+.ranking-list {
+  list-style: none;
+
+  margin: 0;
+  padding: 5px 6px 7px;
+}
+
+.ranking-list-item {
+  margin: 0;
+  padding: 0;
+}
+
+
+.ranking-item-button {
+  display: grid;
+
+  grid-template-columns:
+    24px minmax(0, 1fr) auto;
+
+  align-items: center;
+
+  width: 100%;
+
+  gap: 7px;
+
+  padding:
+    7px 6px;
+
+  border: none;
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #30363a;
+
+  font-family: inherit;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.ranking-item-button:hover {
+  background:
+    rgba(160, 54, 65, 0.09);
+
+  transform:
+    translateX(2px);
+}
+
+.ranking-item-button:focus-visible {
+  outline:
+    2px solid
+    rgba(160, 54, 65, 0.45);
+
+  outline-offset: 1px;
+}
+
+
+.ranking-number {
+  display: flex;
+
+  width: 22px;
+  height: 22px;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(108, 42, 52, 0.1);
+
+  color: #6c2a34;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+
+.ranking-list-item:nth-child(-n + 3)
+.ranking-number {
+  background: #a03641;
+  color: #ffffff;
+}
+
+
+.ranking-area-name {
+  min-width: 0;
+
+  font-size: 12px;
+  line-height: 1.35;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+
+.ranking-value {
+  color: #7b343e;
+
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+
+.ranking-empty-message {
+  padding: 18px 12px;
+
+  color: #747c81;
+
+  font-size: 12px;
+  text-align: center;
+}
+
+/* =========================================================
+   可拖曳、可收合的排名視窗
+========================================================= */
+
+.ranking-panel {
+  position: absolute;
+  z-index: 850;
+
+  width: 285px;
+  max-width:
+    calc(100% - 20px);
+
+  padding: 0;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+
+  background:
+    rgba(255, 255, 255, 0.92);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.84);
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 5px 18px
+    rgba(24, 35, 42, 0.22);
+
+  backdrop-filter:
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
+
+  color: #30363a;
+}
+
+
+/* 拖曳標題列 */
+.ranking-panel-header {
+  position: relative;
+  top: auto;
+  z-index: 2;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  padding:
+    10px 10px 9px 12px;
+
+  background:
+    rgba(255, 255, 255, 0.97);
+
+  border-bottom:
+    1px solid
+    rgba(70, 78, 82, 0.12);
+
+  cursor: grab;
+
+  user-select: none;
+
+  /* 支援手機和平板拖曳 */
+  touch-action: none;
+}
+
+
+/* 拖曳中的游標 */
+.ranking-panel.is-dragging
+.ranking-panel-header {
+  cursor: grabbing;
+}
+
+
+/* 排名視窗標題群組 */
+.ranking-panel-title-group {
+  display: flex;
+
+  flex-direction: column;
+
+  min-width: 0;
+
+  gap: 3px;
+}
+
+
+.ranking-panel-title {
+  color: #4c3136;
+
+  font-size: 13px;
+  line-height: 1.4;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+
+/* 收合按鈕 */
+.ranking-panel-toggle {
+  display: flex;
+
+  width: 25px;
+  height: 25px;
+
+  flex: 0 0 25px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border:
+    1px solid
+    rgba(108, 42, 52, 0.18);
+
+  border-radius: 7px;
+
+  background:
+    rgba(108, 42, 52, 0.07);
+
+  color: #6c2a34;
+
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+
+.ranking-panel-toggle:hover {
+  background:
+    rgba(108, 42, 52, 0.14);
+}
+
+
+/* 排名內容獨立捲動 */
+.ranking-panel-body {
+  max-height:
+    min(55vh, 430px);
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    rgba(108, 42, 52, 0.35)
+    transparent;
+}
+
+
+.ranking-panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+
+.ranking-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+.ranking-panel-body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+
+  background:
+    rgba(108, 42, 52, 0.3);
+}
+
+
+/* 收合後隱藏清單 */
+.ranking-panel.is-collapsed
+.ranking-panel-body {
+  display: none;
+}
+
+
+/* 收合後讓視窗稍微縮窄 */
+.ranking-panel.is-collapsed {
+  width: 235px;
+}
+
+
+/* 收合後不要顯示底線 */
+.ranking-panel.is-collapsed
+.ranking-panel-header {
+  border-bottom: none;
+}
+
+@media (max-width: 750px) {
+  .leaflet-top.leaflet-right
+  .custom-layer-control {
+    margin-right: 10px;
+  }
+}
