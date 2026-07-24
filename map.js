@@ -2063,8 +2063,7 @@ layerPanelClose.addEventListener(
 
 // 網頁載入時預設開啟圖層控制面板
 openLayerPanel();
-// 接著載入圖層
-loadMentalHealthLayer();
+
 
 // 圖層控制面板不會因點擊地圖而自動收起。
 // 使用者需按右上角的 × 按鈕關閉面板。
