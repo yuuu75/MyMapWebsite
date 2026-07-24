@@ -2533,21 +2533,64 @@ function clearPolygonSelection(config) {
     null;
 }
 
+// 取得行政區 Tooltip 的固定位置
+function getPolygonTooltipPosition(
+  layer
+) {
+  // 優先使用多邊形中心
+  if (
+    typeof layer.getCenter ===
+    "function"
+  ) {
+    try {
+      return layer.getCenter();
+    } catch (error) {
+      // 圖層尚未完成投影時，
+      // 改用範圍中心
+    }
+  }
+
+  if (
+    typeof layer.getBounds ===
+    "function"
+  ) {
+    const bounds =
+      layer.getBounds();
+
+    if (bounds.isValid()) {
+      return bounds.getCenter();
+    }
+  }
+
+  return null;
+}
+
 // 建立面圖層的互動事件
 function bindPolygonFeatureEvents(
   config,
   layer,
   popupContent
 ) {
-  // 滑鼠經過時顯示資訊
   layer.bindTooltip(
-    popupContent,
-    {
-      sticky: true,
-      direction: "top",
-      opacity: 0.95
-    }
-  );
+  popupContent,
+  {
+    // 不跟隨滑鼠
+    sticky: false,
+
+    // 滑鼠離開後自動關閉
+    permanent: false,
+
+    direction: "top",
+
+    // 讓視窗稍微位於固定點上方
+    offset: [0, -8],
+
+    opacity: 0.95,
+
+    className:
+      "fixed-polygon-tooltip"
+  }
+);
 
   // 點擊後固定顯示資訊
   layer.bindPopup(
@@ -2559,20 +2602,39 @@ function bindPolygonFeatureEvents(
     }
   );
 
-  // 若同圖層已有其他行政區被固定，
-  // 阻止其他行政區顯示 Tooltip
   layer.on(
-    "tooltipopen",
-    function () {
-      if (
-        config.selectedFeatureLayer &&
-        config.selectedFeatureLayer !==
-          layer
-      ) {
-        layer.closeTooltip();
-      }
+  "tooltipopen",
+  function () {
+    // 同圖層已有其他行政區被選取時，
+    // 不顯示目前行政區的 Tooltip
+    if (
+      config.selectedFeatureLayer &&
+      config.selectedFeatureLayer !==
+        layer
+    ) {
+      layer.closeTooltip();
+      return;
     }
-  );
+
+    const tooltip =
+      layer.getTooltip();
+
+    const fixedPosition =
+      getPolygonTooltipPosition(
+        layer
+      );
+
+    // 將 Tooltip 固定在行政區中心
+    if (
+      tooltip &&
+      fixedPosition
+    ) {
+      tooltip.setLatLng(
+        fixedPosition
+      );
+    }
+  }
+);
 
   // 滑鼠移入行政區
   layer.on(
