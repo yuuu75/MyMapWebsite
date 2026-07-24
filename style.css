@@ -28,9 +28,9 @@ body {
   right: 0;
 
   z-index: 1000;
-  padding: 10px 28px;
+  padding: 3px 28px;
 
-  background: rgba(255, 255, 255, 0.702);
+  background: rgba(255, 255, 255, 0.802);
 
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1668,7 +1668,7 @@ body {
   position: absolute;
   z-index: 850;
 
-  width: 285px;
+  width: 230px;
   max-width:
     calc(100% - 20px);
 
@@ -1805,7 +1805,7 @@ body {
 /* 排名內容獨立捲動 */
 .ranking-panel-body {
   max-height:
-    min(55vh, 430px);
+    min(40vh, 430px);
 
   overflow-y: auto;
   overflow-x: hidden;
