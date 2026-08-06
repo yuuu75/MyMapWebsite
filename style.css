@@ -2810,12 +2810,12 @@ body {
 @media screen and (max-width: 700px) {
   /* 所有 Leaflet 上方控制器一起往下 */
   .leaflet-top {
-    top: 108px !important;
+    top: 96px !important;
   }
 
   /* 右上角控制器不要再額外向上或向下偏移 */
   .leaflet-top.leaflet-right {
-    top: 108px !important;
+    top: 96px !important;
   }
 
   .leaflet-top.leaflet-right
@@ -2836,5 +2836,101 @@ body {
 
     overflow-y: auto;
     overflow-x: hidden;
+  }
+}
+
+@media screen and (max-width: 700px) {
+
+  /* 圖例整體縮小 */
+  .multi-layer-legend,
+  .legend {
+    width: auto;
+    max-width: 155px;
+
+    padding: 6px 8px;
+
+    border-radius: 7px;
+
+    font-size: 9px;
+    line-height: 1.35;
+  }
+
+  /* 圖例標題 */
+  .multi-layer-legend h4,
+  .legend h4 {
+    margin: 0 0 5px;
+
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  /* 每一列圖例 */
+  .multi-layer-legend .legend-item,
+  .legend > div {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    min-height: 15px;
+
+    margin-bottom: 2px;
+  }
+
+  /* 圖例色塊縮小 */
+  .multi-layer-legend i,
+  .legend i {
+    width: 11px;
+    height: 11px;
+
+    flex: 0 0 11px;
+
+    margin-right: 4px;
+
+    border-width: 1px;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .multi-layer-legend,
+  .legend {
+    max-height: 135px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .layer-panel-content {
+    width: min(
+      225px,
+      calc(100vw - 18px)
+    );
+
+    max-height:
+      calc(100vh - 112px);
+
+    padding: 9px 10px 11px;
+  }
+
+  .layer-control-title {
+    font-size: 14px;
+  }
+
+  .layer-control-item {
+    min-height: 18px;
+
+    padding: 2px 4px;
+
+    font-size: 11px;
+  }
+
+  .overlay-opacity-row {
+    font-size: 9px;
+  }
+
+  .overlay-opacity-slider {
+    height: 14px;
   }
 }
