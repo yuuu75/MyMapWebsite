@@ -2802,3 +2802,39 @@ body {
       calc(100vh - 125px);
   }
 }
+
+/* =========================================================
+   手機版：讓圖層控制器避開浮動標題欄
+========================================================= */
+
+@media screen and (max-width: 700px) {
+  /* 所有 Leaflet 上方控制器一起往下 */
+  .leaflet-top {
+    top: 108px !important;
+  }
+
+  /* 右上角控制器不要再額外向上或向下偏移 */
+  .leaflet-top.leaflet-right {
+    top: 108px !important;
+  }
+
+  .leaflet-top.leaflet-right
+  .leaflet-control {
+    margin-top: 0 !important;
+  }
+
+  /* 圖層控制面板本身取消額外位移 */
+  .custom-layer-control {
+    margin-top: 0 !important;
+    transform: none !important;
+  }
+
+  /* 展開後的面板限制在可操作範圍內 */
+  .layer-panel-content {
+    max-height:
+      calc(100vh - 125px);
+
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
