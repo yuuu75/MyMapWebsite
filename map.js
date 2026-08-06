@@ -3553,7 +3553,7 @@ async function loadPolygonLayer(
           return {
             pane: config.paneName,
             color: "#666666",
-            weight: 0.8,
+            weight: 0.5,
             opacity: 1,
             fillColor:
               getClassColor(
