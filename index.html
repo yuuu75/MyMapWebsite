@@ -33,21 +33,41 @@
 
 <body>
   <header class="site-header">
-  <div class="header-left-section">
-    <div class="header-title-group">
-      <h1>臺灣心理資源地圖</h1>
+  <div class="header-inner">
 
-      <p class="header-subtitle">
-        城鄉環境與心理資源空間分析
-      </p>
+    <!-- 左側：網站識別 -->
+    <div class="header-brand">
+      <div
+        class="header-logo"
+        aria-hidden="true"
+      >
+        <span class="header-logo-dot"></span>
+        <span class="header-logo-ring"></span>
+      </div>
+
+      <div class="header-title-group">
+        <div class="header-eyebrow">
+          Taiwan Spatial Analysis
+        </div>
+
+        <h1>
+          臺灣心理資源地圖
+        </h1>
+
+        <p>
+          城鄉環境與心理資源空間分析
+        </p>
+      </div>
     </div>
 
+
+    <!-- 中間：行政區檢索 -->
     <div
-      class="header-location-search"
+      class="header-search"
       role="search"
       aria-label="行政區檢索"
     >
-      <label class="location-search-field">
+      <label class="header-search-field">
         <span>縣市</span>
 
         <select
@@ -60,7 +80,14 @@
         </select>
       </label>
 
-      <label class="location-search-field">
+      <span
+        class="header-search-arrow"
+        aria-hidden="true"
+      >
+      
+      </span>
+
+      <label class="header-search-field">
         <span>鄉鎮市區</span>
 
         <select
@@ -76,17 +103,125 @@
       <button
         type="button"
         id="location-search-reset"
-        class="location-search-reset"
+        class="header-reset-button"
         title="回到全臺範圍"
       >
+        <span aria-hidden="true">⌂</span>
         全臺
       </button>
     </div>
+    <!-- Header 功能按鈕 -->
+<div class="header-actions">
+
+  <button
+    id="guide-button"
+    class="header-action-button"
+    type="button"
+  >
+    ⓘ 使用說明
+  </button>
+
+  <button
+    id="source-button"
+    class="header-action-button"
+    type="button"
+  >
+    📑 資料來源
+  </button>
+
+  <button
+    id="about-button"
+    class="header-action-button"
+    type="button"
+  >
+    ℹ 關於
+  </button>
+
+</div>
   </div>
 </header>
 
   <div id="map"></div>
 
+<!-- 使用說明 -->
+<div id="guide-modal" class="simple-modal">
+
+  <div class="simple-modal-content">
+
+    <span class="modal-close">&times;</span>
+
+    <h3>使用說明</h3>
+
+    <ul>
+
+      <li>勾選圖層即可顯示資料。</li>
+
+      <li>點擊行政區查看詳細資訊。</li>
+
+      <li>右側排名可快速定位行政區。</li>
+
+      <li>可切換底圖及調整透明度。</li>
+
+    </ul>
+
+  </div>
+
+</div>
+
+
+<!-- 資料來源 -->
+
+<div id="source-modal" class="simple-modal">
+
+  <div class="simple-modal-content">
+
+    <span class="modal-close">&times;</span>
+
+    <h3>資料來源</h3>
+
+    <ul>
+
+      <li>衛生福利部</li>
+
+      <li>內政部統計處</li>
+
+      <li>國家發展委員會</li>
+
+      <li>交通部 TDX</li>
+
+    </ul>
+
+  </div>
+
+</div>
+
+
+<!-- 關於 -->
+
+<div id="about-modal" class="simple-modal">
+
+  <div class="simple-modal-content">
+
+    <span class="modal-close">&times;</span>
+
+    <h3>關於本網站</h3>
+
+    <p>
+
+      本網站以 Leaflet 建置，
+
+      結合臺灣心理資源與人口統計資料，
+
+      提供互動式空間分析平台。
+
+    </p>
+
+</div>
+
+</div>
+
+
+  
   <!-- Leaflet 地圖程式 -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

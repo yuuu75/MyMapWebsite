@@ -4263,3 +4263,59 @@ Object.keys(layerConfigs)
     loadPolygonLayer(key);
   });
 
+window.addEventListener(
+  "load",
+  function () {
+    window.setTimeout(
+      function () {
+        map.invalidateSize();
+      },
+      100
+    );
+  }
+);
+
+window.addEventListener(
+  "resize",
+  function () {
+    map.invalidateSize();
+  }
+);
+
+function bindModal(buttonId, modalId){
+
+    const button=document.getElementById(buttonId);
+
+    const modal=document.getElementById(modalId);
+
+    const close=modal.querySelector(".modal-close");
+
+    button.onclick=()=>{
+
+        modal.style.display="block";
+
+    }
+
+    close.onclick=()=>{
+
+        modal.style.display="none";
+
+    }
+
+    window.addEventListener("click",function(e){
+
+        if(e.target===modal){
+
+            modal.style.display="none";
+
+        }
+
+    });
+
+}
+
+bindModal("guide-button","guide-modal");
+
+bindModal("source-button","source-modal");
+
+bindModal("about-button","about-modal");
