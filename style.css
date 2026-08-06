@@ -7,6 +7,7 @@ body {
 }
 
 body {
+  position: relative;
   display: flex;
   flex-direction: column;
 
@@ -45,7 +46,10 @@ body {
 
 /* 標題列占據正常版面空間 */
 .site-header {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
 
   flex: 0 0 auto;
 
@@ -56,7 +60,7 @@ body {
   padding: 8px 18px;
 
   background:
-    rgba(250, 248, 248, 0.7);
+    rgba(250, 248, 248, 0.8);
 
   border-bottom:
     1px solid
@@ -1092,7 +1096,7 @@ body {
   border-radius: 10px;
 
   background:
-    rgba(255, 255, 255, 0.702);
+    rgba(255, 255, 255, 0.8);
 
   box-shadow:
     0 4px 14px
@@ -1955,7 +1959,7 @@ body {
   padding: 0;
 
   background:
-    rgba(255, 255, 255, 0.6);
+    rgba(255, 255, 255, 0.7);
 
   border:
     1px solid
@@ -2175,7 +2179,7 @@ body {
   box-sizing: border-box;
 
   background:
-    rgba(255, 255, 255, 0.92);
+    rgba(255, 255, 255, 0.7);
 
   border:
     1px solid
@@ -2559,4 +2563,8 @@ body {
 
     cursor:pointer;
 
+}
+
+.leaflet-top {
+  top: 82px;
 }
